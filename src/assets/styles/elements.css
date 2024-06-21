@@ -1,0 +1,31 @@
+.btn {
+    border: 1px solid rgb(255, 255, 255);
+    padding: 8px 16px;
+    background-color: #1976d2;
+    color: white;
+}
+.btn:hover {
+    background-color: #1976d2cb;
+}
+.btn-outline {
+    border: 1px solid #000000;
+    padding: 8px 16px;
+    background-color: white;
+    color: #404040;
+}
+.btn-outline:hover {
+    background-color: rgba(238, 238, 238, 0.696);
+}
+
+.bold-text {
+    font-weight: bold;
+}
+
+.list-custom {
+   scrollbar-width: thin;          /* "auto" или "thin"  */
+   scrollbar-color: #d8d8d9 rgb(255, 255, 255);   /* плашка скролла и дорожка */ 
+}
+
+.tooltip-el {
+    background-color: #898989 !important; 
+}

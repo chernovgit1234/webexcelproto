@@ -1,0 +1,22 @@
+.actions-beetwen-position {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.cursor-p {
+    cursor: pointer  !important;
+    user-select: none !important;
+}
+
+.cursor-carret_none {
+    cursor: pointer;
+    caret-color: transparent;
+}
+
+.icon-wrapper-with-tooltip {
+    max-width: 64px;
+    max-height: 64px;
+}
