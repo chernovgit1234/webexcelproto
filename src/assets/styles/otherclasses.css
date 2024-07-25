@@ -20,3 +20,23 @@
     max-width: 64px;
     max-height: 64px;
 }
+
+.disabled-element {
+    cursor: default;
+}
+
+.bsr {
+    border: 1px solid red !important;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+    width: 8px;
+}
+.scrollbar-custom::-webkit-scrollbar-corner {
+background: #def1ee !important;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    background-color: #bcd7d2 !important;    /* цвет плашки */
+    border: 1px solid #def1ee;  /* padding вокруг плашки */
+}

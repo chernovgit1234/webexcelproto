@@ -5,6 +5,7 @@
                 <span class="table-wrapper__text">Показано строк: {{ countRow }}</span>
             </div>
 			<the-fast-filters
+			
 				@sort="sort" 
 				@resetFastFilter="clearAllFilter()"
 			></the-fast-filters>
@@ -25,47 +26,61 @@
 						<span class="cursor-carret_none">Добавить быстрый фильтр</span><br/>
 					</q-tooltip>
 				</div>
-
-				<img v-else class="cursor-carret_none" src="../assets/icons/filter-add-freeze.svg" @click.stop/>
+				<img v-else class="cursor-carret_none disabled-element" src="../assets/icons/filter-add-freeze.svg" @click.stop/>
 				<div class="icon-wrapper-with-tooltip" v-if="thereIsActiveFilters">
 					<img style="width: 100%;height: 100%;" class="cursor-carret_none" src="../assets/icons/filter-remove.svg" @click.stop="clearAllFilter()"/>
 					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
 						<span class="cursor-carret_none">Сбросить все фильтры</span><br/>
 					</q-tooltip>
 				</div>
-				<img v-else class="cursor-carret_none" src="../assets/icons/filter-remove-freeze.svg" @click.stop />
-				<q-separator vertical inset style="caret-color: transparent"/>
+				<img v-else class="cursor-carret_none disabled-element" src="../assets/icons/filter-remove-freeze.svg" @click.stop />
+				
+				<q-separator  v-if="false" color="blue" vertical inset style="caret-color: transparent; width: 1.4px"/>
+				<div v-if="false" class="icon-wrapper-with-tooltip" style="padding-top: 5px">
+					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/skip-previous.svg" />
+					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
+						<span class="cursor-carret_none">Прокрутить влево</span><br/>
+					</q-tooltip>
+				</div>
+				<div  v-if="false" class="icon-wrapper-with-tooltip" style="padding-top: 5px">
+					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/skip-next.svg" />
+					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
+						<span class="cursor-carret_none">Прокрутить вправо</span><br/>
+					</q-tooltip>
+				</div>
+				<q-separator color="blue" vertical inset style="caret-color: transparent; width: 1.6px"/>
+
 				<div class="icon-wrapper-with-tooltip">
-					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/refresh.svg" @click.stop/>
+					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/restart.svg" @click.stop/>
 					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
 						<span class="cursor-carret_none">Обновить таблицу с базы данных</span><br/>
 					</q-tooltip>
 				</div>
 
 				<div class="icon-wrapper-with-tooltip">
-					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/tuning.svg" @click="showPresetMenu === true"/>
+					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/tuning.svg" @click.stop="showPresetMenu = true"/>
 					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
 						<span class="cursor-carret_none">Управление пресетами</span><br/>
 					</q-tooltip>
 				</div>
 				<div class="icon-wrapper-with-tooltip" v-if="!allSize">
-					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/fulll.svg" @click.stop="changeTableSize()"/>
+					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/quitpip.svg" @click.stop="changeTableSize()"/>
 					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
 						<span class="cursor-carret_none">Расширить на весь экран</span><br/>
 					</q-tooltip>
 				</div>
 				<div class="icon-wrapper-with-tooltip" v-else>
-					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/quit-full.svg" @click.stop="changeTableSize()"/>
+					<img style="width: 100%;height: 100%;"  class="cursor-carret_none" src="../assets/icons/topip.svg" @click.stop="changeTableSize()"/>
 					<q-tooltip class="text-body2 tooltip-el" anchor="top middle" self="bottom middle" >
 						<span class="cursor-carret_none">Сбросить</span><br/>
 					</q-tooltip>
 				</div>
-				<q-menu max-height="900px" v-model="showPresetMenu">
+				<q-menu max-height="900px" v-model="showPresetMenu" :no-parent-event="true">
 					<the-main-presets></the-main-presets>
 				</q-menu>
             </div>
           </div>
-          <div class="table-wrapper__table">
+          <div class="table-wrapper__table" id="hs-table-container">
 			<div id="tooltip-text"></div>
             <div id="hs-table"></div>
 			<div id="tooltip-header">
@@ -79,41 +94,48 @@
 			</the-autofilter>
             </div>
 		<canvas v-show="false" id="canvas-ht"></canvas>
-          </div>
-		
+        </div>
         </div>
     </template>
-  
-  <script lang="ts" setup>
-    import {nestedHighHeader} from '../helpers/ColumnsHelper'
-    import {EnumTypeBrand, EnumTypeBrandRow, EnumColumnName, EnumColumnNumber} from '../enums/EnumColumnValues'
+<script lang="ts" setup>
+import axios from 'axios'
+    import {nestedHighHeader,nestedHighHeaderGroup,teststruxt, fieldsInfoMap, columnsSettings} from '../helpers/ColumnsHelper'
+    import {EnumTypeBrand, EnumTypeBrandRow, EnumColumnName, EnumColumnNumber, EnumFieldName, EnumColumnTableNumber} from '../enums/EnumColumnValues'
     import { renderAfterGetColHeader } from '../helpers/HooksMethods.ts' 
-    import {renderGuid, renderBrandCell, renderTdCommon, renderTypeTooltip} from '../helpers/Renderers.ts'
+    import {renderGuid, renderBrandCell, renderTdCommon, renderTypeTooltip, renderTypeDate, renderTypeNumber, renderTypeDropdown} from '../helpers/Renderers.ts'
 	import { toDate } from '../helpers/CommonMethods.ts' 
 	import TheMainPresets from './TheMainPresets.vue'
 	import TheFastFilters from './TheFastFilters.vue'
 	import TheAutofilter from './TheAutofilter.vue'
     import { IModelData } from '../types/TableTypes' 
     import { useStore } from 'vuex'
-    import axios from 'axios';
     import Handsontable from "handsontable";
-    import { onMounted, ref, reactive, computed, defineEmits } from 'vue';
+    import { onMounted, ref, reactive, computed, defineEmits , nextTick, watchEffect, toRaw} from 'vue';
     import { HotTable, HotColumn } from '@handsontable/vue3';
     import { registerAllModules } from 'handsontable/registry';
     import 'handsontable/dist/handsontable.full.css';
     import { ContextMenu } from 'handsontable/plugins/contextMenu';
     import Core from "handsontable/core";
-	import { HiddenColumns } from 'handsontable/plugins'
+	import { CollapsibleColumns, HiddenColumns } from 'handsontable/plugins'
 	import { watch } from 'vue'
     import {IAutofilter} from '../../types/AutofilterTypes'
 	import {EnumRuleAutofilter, EnumTypeField} from '../enums/EnumsByFilter'
     import { stopImmediatePropagation } from 'handsontable/helpers/dom'
-	import {EnumEmptyString} from '../types/OtherTypes'
-	
+	import {EnumEmptyString, ISearchByColumnMetadata} from '../types/OtherTypes'
+	import {validatorDate, validatorDateWithoutCallbak, validatorByCostField, validatorByBrandField} from '../validators/ValidatorFunctions'
+	import {brands} from '../enums/Lists.ts'
+    import ContentControllerUrls from '../Urls/ContentUrls'
+	import 'handsontable/languages/ru-RU'
+	import CustomDateEditorComponent from './SpecialComponents/CustomDateEditorComponent.vue'
+
+	registerAllModules();
+
     const emit = defineEmits([
 		'changeTableSize', 
-        'showPopupCreateFilterName'
+        'showPopupCreateFilterName',
+		'showPopupShowStoryRow'
 	])
+
     const store = useStore()
 
 	const fastFilterNames = computed<string[]>(() => store.getters.fastFilterNames)
@@ -121,83 +143,177 @@
 	const thereIsActiveFilters = computed(() => store.getters.thereIsActiveFilters)
 	const thereIsAnActiveFastFilter = computed(() => store.getters.thereIsAnActiveFastFilter)
 	const selectedColumn = computed(() => store.getters.selectedColumn)
-	
-	
+	const columnSearchMetadata = computed(() => store.getters.columnSearchMetadata)
 	const countRow = ref(0)
 
-	watch(hiddenColumns, (newValue: number[]) => {
-		instance.updateSettings({ hiddenColumns:{
-													columns: newValue,
-													indicators: true
-												}, 
-								});
+	watch(hiddenColumns, (hiddenColumns: number[]) => {	
+		updateSettingHiddenColumns(hiddenColumns)
+	})
+	watch(columnSearchMetadata, (newValue: ISearchByColumnMetadata) => {	
+		console.log('-----columnSearchMetadata', toRaw(newValue))
+		search(newValue)
 	})
 
-    registerAllModules();
+	function updateSettingHiddenColumns(hiddenColumns: number[]) {
+		const hiddenColumnsPlugin = instance.getPlugin('HiddenColumns');
+		let activeColumns: number[] = [...fieldsInfoMap.keys()].reduce( (acc: number[], item: number) => {
+			if (!hiddenColumns.includes(item)) acc.push(item); 
+				return acc;
+		} , []);
 
+		//показ активных и скрытие неактивных
+		hiddenColumnsPlugin.showColumns(activeColumns)
+        hiddenColumnsPlugin.hideColumns([...hiddenColumns])
+
+		//формальное обновление
+		instance.updateSettings({colWidths: [0.1,0.1,0.1]})
+	}
+	
 	//перем. для управления пропсом в быстр фильтр
 	let valuesAutofilter = ref<any[]>([])
 	let applliedAutofilter = ref<boolean | null>(null)
 
-
 	let tabModel = ref<string>('mails')
     let allSize = ref(false)
-    let instance: any = reactive({})
+    let instance: Handsontable = reactive({})
 	let showPresetMenu = ref(false)
 
+	let selectRow = ref(0)
+	let selectColumn = ref(0)
+	let highlightedRows = ref(1)
+	let highlightedColumns = ref(1)
+	
+	function getHighlightedRows(): number {
+		return highlightedRows.value
+	}
 
-	const typeTooltipObject: any = ref({
-		renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTypeTooltip(instance, row, td, value)
+    function hiddenColumnsHide() {
+		let selectedColumnsLocal: number[] = []
+		let selectedRangeLocal: any[] = instance.getSelectedRange() as any[]
+
+		selectedRangeLocal.forEach((range: any[]) => {
+			let from = Number(range.from.col)
+			let to = Number(range.to.col)
+
+			if (from === to) {
+			selectedColumnsLocal.push(from)
+			} else {
+				for (var i = from; i <= to; i++) {
+					selectedColumnsLocal.push(i)
+				}
+			}
+		})
+        //setSummObject
+		let selectedColumns = [...new Set(selectedColumnsLocal)]
+		//актуализация пресета
+		store.dispatch('updateHiddenColumnsForActivePreset', selectedColumns)
+		//обновление настройки 
+		updateSettingHiddenColumns(selectedColumns)
+	}
+	function hiddenColumnsShow() {
+		let selectedColumnsLocal: number[] = []
+		let selectedRangeLocal: any[] = instance.getSelectedRange() as any[]
+
+		selectedRangeLocal.forEach((range: any[]) => {
+			let from = Number(range.from.col)
+			let to = Number(range.to.col)
+            //только диапазоны
+			if (from !== to) {
+				for (var i = from; i <= to; i++) {
+					selectedColumnsLocal.push(i)
+				}
+			}
+		})
+
+		let selectedColumns = [...new Set(selectedColumnsLocal)]
+		//актуализация пресета
+		store.dispatch('updateShowedColumnsForActivePreset', selectedColumns)
+		//отображение колонок
+		const hiddenColumnsPlugin = instance.getPlugin('HiddenColumns');
+		hiddenColumnsPlugin.showColumns(selectedColumns)
+		//формальное обновление
+		instance.updateSettings({colWidths: [0.1,0.1,0.1]})
+	}
+
+	function checkDisabledColumnsHideOption() {
+				//проверка доступности скрытия колонок через контекстное менню
+		if (selectColumn.value === EnumColumnTableNumber.Numbs || selectColumn.value === EnumColumnTableNumber.Guid || selectColumn.value === EnumColumnTableNumber.Type) {
+			return true
+		}
+	}
+	function checkDisabledRemoveRowOption() {
+		//проверка доступности удаления через контекстное менню
+		if (selectRow.value <= EnumColumnTableNumber.Numbs) {
+			return true
+		}
+	}
+	let contextMenu: any[] = reactive({
+      items: {
+		hidden_columns_hide: {
+			name: 'Cкрыть выделенные колонки',
+			isCommand: true,
+			callback: function (key: any, options: any) {
+				hiddenColumnsHide()
+            },
+			disabled: function (key: any, options: any) {
+				return checkDisabledColumnsHideOption()
+            },
+		},
+		hidden_columns_show: {
+			name: 'Показать скрытые колонки',
+			isCommand: true,
+			callback: function (key: any, options: any) {
+				hiddenColumnsShow()
+            }
+		},
+		remove_row: {
+			disabled: function (key: any, options: any) {
+				return checkDisabledRemoveRowOption()
+            },
+		},
+	}
 	})
-    const columns = ref([
-    { 
-      data: "Guid",
-      width: 40, 
-      readOnly: true, 
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderGuid(td).addEventListener('click', function(){ getStory(value) })
-  },  
-    { 
-      data: "TypeRow",
-      readOnly: true,
-      width: 100,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderBrandCell(td, value as EnumTypeBrandRow)
-     },
-    { data: "Name", width: 200, readOnly: false, type: typeTooltipObject},
-    { data: "Brand", readOnly: true, width: 350,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) 
-	},
-    { data: "Title", width: 350, readOnly: false,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) },
-    { data: "ProductionDate", width: 350, readOnly: false,type: 'date',allowInvalid: true,
-      dateFormat: 'YYYY-MM-DD',
-      correctFormat: true,
-      defaultDate: '1900-01-01',
-	datePickerConfig: {
-	firstDay: 0,
-	showWeekNumber: true
-	},
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) },
-    { data: "Сost", readOnly: true, width: 350,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) },
-    { data: "ProducingCountry", width: 350, readOnly: false,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) },
-    { data: "AgentEmail", readOnly: true, width: 350,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) },
-    { data: "Comments", width: 350, readOnly: false,
-      renderer: (instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string) => renderTdCommon(instance, row, td, value) }
-  ],)
 
+	let columns = ref([
+    { data: "Guid", width: 40, readOnly: true, renderer: 'renderForGuid' },  
+    { data: "TypeRow", readOnly: true, width: 100, renderer: 'renderForBrandCell' },
+    { data: "Name", width: 200, readOnly: false, renderer: 'renderStringTypeField', /* editor: 'testEditor' */},
+    { data: "Brand",
+		readOnly: false,
+		width: 350,
+		type: 'dropdown',
+        source: brands,
+		strict: true,
+		filter: true,
+		sortByRelevance: true,
+		trimDropdown: true
+	},
+
+    { data: "Title", width: 350, readOnly: false,allowEmpty:true,allowInvalid: true, renderer: 'renderStringTypeField'},
+    { data: "ProductionDate", /* editor: 'dateCustomEditor' */width: 350, readOnly: false, type: 'date',dateFormat: 'YYYY/MM/DD',correctFormat: true,defaultDate: new Date(),renderer: 'renderProductionDate',
+		datePickerConfig: {
+			firstDay: 0,
+			showWeekNumber: true
+		}
+	},
+    { data: "Cost", readOnly: false, width: 350, type: "numeric", renderer: 'renderCostField'},
+    { data: "ProducingCountry", width: 350, readOnly: false, renderer: 'renderStringTypeField'},
+    { data: "AgentEmail", readOnly: true, width: 350},
+    { data: "Comments", width: 350, readOnly: true}
+    ])
+  
     const namesCustomDate = ref<string[]>([
-		'Колпачок болта колёс NEXIA GM',
+		'Повседневная',
 		'Колпачок заднего барабана NEXIA MATIZ GM ',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
-		'Патрубок печки NEXIA SOHC (вход) GM',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
+		'Повседневная практика показывает, что экономическая повестка сегодняшнего дня влечет за собой процесс внедрения и модернизации инновационных методов управления процессами. Но диаграммы связей превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. А также интерактивные прототипы объединены в целые кластеры себе подобных. Учитывая ключевые сценарии поведения, внедрение современных методик является качественно новой ступенью экспериментов, поражающих по своей масштабности и грандиозности. Для современного мира базовый вектор развития обеспечивает широкому кругу (специалистов) участие в формировании прогресса профессионального сообщества. Не следует, однако, забывать, что убеждённость некоторых оппонентов требует от нас анализа системы обучения кадров, соответствующей насущным потребностям. Сложно сказать, почему независимые государства превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Противоположная точка зрения подразумевает, что некоторые особенности внутренней политики функционально разнесены на независимые элементы. Равным образом, граница обучения кадров играет определяющее значение для укрепления моральных ценностей. Картельные сговоры не допускают ситуации, при которой базовые сценарии поведения пользователей, превозмогая сложившуюся непростую экономическую ситуацию, в равной степени предоставлены сами себе. Прежде всего, укрепление и развитие внутренней структуры представляет собой интересный эксперимент проверки дальнейших направлений развития. Вот вам яркий пример современных тенденций — глубокий уровень погружения предполагает независимые способы реализации позиций, занимаемых участниками в отношении поставленных задач. Равным образом, выбранный нами инновационный путь, а также свежий взгляд на привычные вещи — безусловно открывает новые горизонты для переосмысления внешнеэкономических политик. Мы вынуждены отталкиваться от того, что реализация намеченных плановых заданий однозначно фиксирует необходимость новых предложений. Разнообразный и богатый опыт говорит нам, что перспективное планирование обеспечивает актуальность стандартных подходов.',
 		'Патрубок печки NEXIA SOHC (вход) GM',
 		'Кольца поршневые LACETTI NEXIA (1.6)  +0.25 Aztec',
 		'Кольца поршневые LACETTI NEXIA (1.6)  +0.25 GM',
@@ -893,15 +1009,17 @@
 		''
 	])
 	
+	
+	//let testValue = reactive<IModelData[]>([])
     let dataValue = reactive<IModelData[]>([
 	{
 		"Guid": "CE1C378B-9ACD-DEBA-96DD-7D74BF58E65C",
 		"TypeRow": "brand",
-		"Name": "",
+		"Name": "Повседневная",
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-09 15:30:22",
-		"Сost": "79 079",
+		"Cost": "79 079",
 		"ProducingCountry": "Koszalin",
 		"AgentEmail": "ante.vivamus@icloud.ca",
 		"Comments": ""
@@ -913,7 +1031,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-08-15 11:51:34",
-		"Сost": "80 554",
+		"Cost": "80 554",
 		"ProducingCountry": "Pskov",
 		"AgentEmail": "vehicula@google.net",
 		"Comments": ""
@@ -925,7 +1043,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2025-03-14 08:57:04",
-		"Сost": "8 371",
+		"Cost": "8 371",
 		"ProducingCountry": "Nevers",
 		"AgentEmail": "nam@google.ca",
 		"Comments": ""
@@ -937,7 +1055,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-06-14 22:52:07",
-		"Сost": "54 645",
+		"Cost": "54 645",
 		"ProducingCountry": "Alsemberg",
 		"AgentEmail": "magna@google.ca",
 		"Comments": ""
@@ -949,7 +1067,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-05-14 14:35:01",
-		"Сost": "99 078",
+		"Cost": "99 078",
 		"ProducingCountry": "Wonju",
 		"AgentEmail": "sapien.nunc.pulvinar@icloud.org",
 		"Comments": ""
@@ -961,7 +1079,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-10-22 12:20:56",
-		"Сost": "27 951",
+		"Cost": "27 951",
 		"ProducingCountry": "Jelenia Góra",
 		"AgentEmail": "sit.amet.risus@aol.couk",
 		"Comments": ""
@@ -973,7 +1091,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-11 06:50:26",
-		"Сost": "37 081",
+		"Cost": "37 081",
 		"ProducingCountry": "Kursk",
 		"AgentEmail": "mauris.suspendisse@protonmail.net",
 		"Comments": ""
@@ -985,7 +1103,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-12-19 08:46:57",
-		"Сost": "80 782",
+		"Cost": "80 782",
 		"ProducingCountry": "Ludwigsburg",
 		"AgentEmail": "placerat.orci@hotmail.couk",
 		"Comments": ""
@@ -997,7 +1115,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2025-04-22 08:54:06",
-		"Сost": "71 478",
+		"Cost": "71 478",
 		"ProducingCountry": "Riesa",
 		"AgentEmail": "sit@google.couk",
 		"Comments": ""
@@ -1009,7 +1127,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-12-17 01:04:44",
-		"Сost": "45 630",
+		"Cost": "45 630",
 		"ProducingCountry": "Bolinne",
 		"AgentEmail": "sem.ut@yahoo.ca",
 		"Comments": ""
@@ -1021,7 +1139,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-12-01 15:48:31",
-		"Сost": "96 585",
+		"Cost": "96 585",
 		"ProducingCountry": "Steendorp",
 		"AgentEmail": "sollicitudin.commodo@yahoo.com",
 		"Comments": ""
@@ -1033,7 +1151,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-05-07 15:44:19",
-		"Сost": "84 082",
+		"Cost": "84 082",
 		"ProducingCountry": "Lidingo",
 		"AgentEmail": "diam.nunc.ullamcorper@hotmail.net",
 		"Comments": ""
@@ -1045,7 +1163,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-01 09:59:08",
-		"Сost": "61 789",
+		"Cost": "61 789",
 		"ProducingCountry": "Wenduine",
 		"AgentEmail": "odio.vel@icloud.net",
 		"Comments": ""
@@ -1057,7 +1175,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-12-04 05:54:25",
-		"Сost": "34 516",
+		"Cost": "34 516",
 		"ProducingCountry": "Acquasanta Terme",
 		"AgentEmail": "elit@hotmail.edu",
 		"Comments": ""
@@ -1069,7 +1187,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-04-05 00:27:36",
-		"Сost": "60 325",
+		"Cost": "60 325",
 		"ProducingCountry": "Jacksonville",
 		"AgentEmail": "eget.dictum@yahoo.couk",
 		"Comments": ""
@@ -1081,7 +1199,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-07-18 15:39:35",
-		"Сost": "69 208",
+		"Cost": "69 208",
 		"ProducingCountry": "Ostrowiec Świętokrzyski",
 		"AgentEmail": "euismod.urna@outlook.ca",
 		"Comments": ""
@@ -1093,7 +1211,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-11-03 22:19:27",
-		"Сost": "37 494",
+		"Cost": "37 494",
 		"ProducingCountry": "Vienna",
 		"AgentEmail": "arcu.nunc@yahoo.org",
 		"Comments": ""
@@ -1105,7 +1223,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-11-15 17:27:38",
-		"Сost": "65 890",
+		"Cost": "65 890",
 		"ProducingCountry": "Ajaccio",
 		"AgentEmail": "vel@outlook.net",
 		"Comments": ""
@@ -1117,7 +1235,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-04-10 13:48:58",
-		"Сost": "1 740",
+		"Cost": "1 740",
 		"ProducingCountry": "Eigenbrakel",
 		"AgentEmail": "sapien.imperdiet@aol.ca",
 		"Comments": ""
@@ -1129,7 +1247,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-07-07 05:19:26",
-		"Сost": "73 601",
+		"Cost": "73 601",
 		"ProducingCountry": "Béziers",
 		"AgentEmail": "sed@protonmail.com",
 		"Comments": ""
@@ -1141,7 +1259,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2025-05-08 00:19:18",
-		"Сost": "58 361",
+		"Cost": "58 361",
 		"ProducingCountry": "Ludvika",
 		"AgentEmail": "adipiscing.elit@aol.net",
 		"Comments": ""
@@ -1153,7 +1271,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-12-25 16:09:36",
-		"Сost": "94 669",
+		"Cost": "94 669",
 		"ProducingCountry": "Osan",
 		"AgentEmail": "proin.eget@protonmail.edu",
 		"Comments": ""
@@ -1165,7 +1283,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-05-15 13:28:43",
-		"Сost": "76 282",
+		"Cost": "76 282",
 		"ProducingCountry": "West Jordan",
 		"AgentEmail": "congue@icloud.couk",
 		"Comments": ""
@@ -1177,7 +1295,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-11-15 11:29:05",
-		"Сost": "45 343",
+		"Cost": "45 343",
 		"ProducingCountry": "Gongju",
 		"AgentEmail": "sem@outlook.couk",
 		"Comments": ""
@@ -1189,7 +1307,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-08-26 20:17:17",
-		"Сost": "99 258",
+		"Cost": "99 258",
 		"ProducingCountry": "Moulins",
 		"AgentEmail": "maecenas.mi.felis@aol.couk",
 		"Comments": ""
@@ -1201,7 +1319,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2023-10-05 17:44:47",
-		"Сost": "33 989",
+		"Cost": "33 989",
 		"ProducingCountry": "Rzeszów",
 		"AgentEmail": "dapibus.rutrum@yahoo.edu",
 		"Comments": ""
@@ -1213,7 +1331,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-04-27 01:04:27",
-		"Сost": "89 510",
+		"Cost": "89 510",
 		"ProducingCountry": "Ełk",
 		"AgentEmail": "nibh.quisque@icloud.couk",
 		"Comments": ""
@@ -1225,7 +1343,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-01-04 05:57:34",
-		"Сost": "51 126",
+		"Cost": "51 126",
 		"ProducingCountry": "Valéncia",
 		"AgentEmail": "curabitur.egestas@google.couk",
 		"Comments": ""
@@ -1237,7 +1355,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2025-02-27 19:42:20",
-		"Сost": "59 326",
+		"Cost": "59 326",
 		"ProducingCountry": "Volgograd",
 		"AgentEmail": "sem.egestas@hotmail.org",
 		"Comments": ""
@@ -1249,7 +1367,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2025-02-14 05:05:45",
-		"Сost": "33 131",
+		"Cost": "33 131",
 		"ProducingCountry": "Vienna",
 		"AgentEmail": "donec.egestas@yahoo.ca",
 		"Comments": ""
@@ -1261,7 +1379,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2023-12-19 04:22:46",
-		"Сost": "42 985",
+		"Cost": "42 985",
 		"ProducingCountry": "Fort Collins",
 		"AgentEmail": "aliquam.fringilla@protonmail.couk",
 		"Comments": ""
@@ -1273,7 +1391,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-02-11 04:00:35",
-		"Сost": "99 699",
+		"Cost": "99 699",
 		"ProducingCountry": "Söderhamn",
 		"AgentEmail": "accumsan.interdum@hotmail.couk",
 		"Comments": ""
@@ -1285,7 +1403,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-05-18 06:20:10",
-		"Сost": "48 312",
+		"Cost": "48 312",
 		"ProducingCountry": "Reutlingen",
 		"AgentEmail": "sit.amet.consectetuer@aol.edu",
 		"Comments": ""
@@ -1297,7 +1415,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-02-23 10:29:58",
-		"Сost": "83 318",
+		"Cost": "83 318",
 		"ProducingCountry": "Borås",
 		"AgentEmail": "orci.in@hotmail.org",
 		"Comments": ""
@@ -1309,7 +1427,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-12-06 12:18:17",
-		"Сost": "43 132",
+		"Cost": "43 132",
 		"ProducingCountry": "Arvier",
 		"AgentEmail": "maecenas.ornare.egestas@protonmail.org",
 		"Comments": ""
@@ -1321,7 +1439,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-10-23 22:59:44",
-		"Сost": "70 676",
+		"Cost": "70 676",
 		"ProducingCountry": "Rodez",
 		"AgentEmail": "velit@outlook.edu",
 		"Comments": ""
@@ -1333,7 +1451,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-12-31 07:05:17",
-		"Сost": "61 502",
+		"Cost": "61 502",
 		"ProducingCountry": "Chartres",
 		"AgentEmail": "ante.maecenas@yahoo.org",
 		"Comments": ""
@@ -1345,7 +1463,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-09-24 11:05:35",
-		"Сost": "28 964",
+		"Cost": "28 964",
 		"ProducingCountry": "Feldkirchen in Kärnten",
 		"AgentEmail": "egestas.duis@protonmail.couk",
 		"Comments": ""
@@ -1357,7 +1475,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2025-02-04 11:24:16",
-		"Сost": "65 291",
+		"Cost": "65 291",
 		"ProducingCountry": "Nederhasselt",
 		"AgentEmail": "dui.fusce@aol.edu",
 		"Comments": ""
@@ -1369,7 +1487,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-10-09 16:51:20",
-		"Сost": 305,
+		"Cost": 305,
 		"ProducingCountry": "Kraków",
 		"AgentEmail": "odio.nam@icloud.ca",
 		"Comments": ""
@@ -1381,7 +1499,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2025-05-05 19:28:44",
-		"Сost": "25 103",
+		"Cost": "25 103",
 		"ProducingCountry": "Novosibirsk",
 		"AgentEmail": "tempor.erat@hotmail.edu",
 		"Comments": ""
@@ -1393,7 +1511,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-01-02 09:21:12",
-		"Сost": "57 090",
+		"Cost": "57 090",
 		"ProducingCountry": "Juneau",
 		"AgentEmail": "eu.accumsan@yahoo.couk",
 		"Comments": ""
@@ -1405,7 +1523,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-11-04 08:16:28",
-		"Сost": "92 382",
+		"Cost": "92 382",
 		"ProducingCountry": "Wrocław",
 		"AgentEmail": "ut.erat@aol.ca",
 		"Comments": ""
@@ -1417,7 +1535,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-05-12 04:55:50",
-		"Сost": "34 027",
+		"Cost": "34 027",
 		"ProducingCountry": "Weiz",
 		"AgentEmail": "ac@outlook.net",
 		"Comments": ""
@@ -1429,7 +1547,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-01 12:44:13",
-		"Сost": "92 443",
+		"Cost": "92 443",
 		"ProducingCountry": "Santander",
 		"AgentEmail": "iaculis@outlook.edu",
 		"Comments": ""
@@ -1441,7 +1559,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-07-22 14:37:31",
-		"Сost": "19 331",
+		"Cost": "19 331",
 		"ProducingCountry": "Lisieux",
 		"AgentEmail": "malesuada.fames@yahoo.ca",
 		"Comments": ""
@@ -1453,7 +1571,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-01-04 13:32:40",
-		"Сost": "30 986",
+		"Cost": "30 986",
 		"ProducingCountry": "Moio Alcantara",
 		"AgentEmail": "fusce.mi.lorem@outlook.couk",
 		"Comments": ""
@@ -1465,7 +1583,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2025-05-09 02:25:10",
-		"Сost": "48 871",
+		"Cost": "48 871",
 		"ProducingCountry": "Verrayes",
 		"AgentEmail": "massa@google.edu",
 		"Comments": ""
@@ -1477,7 +1595,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2025-02-22 23:04:23",
-		"Сost": "82 678",
+		"Cost": "82 678",
 		"ProducingCountry": "Corvino San Quirico",
 		"AgentEmail": "eget.metus@yahoo.couk",
 		"Comments": ""
@@ -1489,7 +1607,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-12-23 22:02:59",
-		"Сost": "22 987",
+		"Cost": "22 987",
 		"ProducingCountry": "Lidköping",
 		"AgentEmail": "neque.et@yahoo.edu",
 		"Comments": ""
@@ -1501,7 +1619,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-03-11 13:04:49",
-		"Сost": "22 516",
+		"Cost": "22 516",
 		"ProducingCountry": "Lauterach",
 		"AgentEmail": "non.massa@google.ca",
 		"Comments": ""
@@ -1513,7 +1631,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-10-05 18:05:54",
-		"Сost": "42 640",
+		"Cost": "42 640",
 		"ProducingCountry": "Bad Ischl",
 		"AgentEmail": "tellus@hotmail.com",
 		"Comments": ""
@@ -1525,7 +1643,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2023-11-16 02:09:58",
-		"Сost": "20 054",
+		"Cost": "20 054",
 		"ProducingCountry": "Tambov",
 		"AgentEmail": "mauris.magna@aol.org",
 		"Comments": ""
@@ -1537,7 +1655,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-08-28 21:38:01",
-		"Сost": "96 879",
+		"Cost": "96 879",
 		"ProducingCountry": "Tranås",
 		"AgentEmail": "velit.in.aliquet@protonmail.couk",
 		"Comments": ""
@@ -1549,7 +1667,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-11-30 04:32:36",
-		"Сost": "40 816",
+		"Cost": "40 816",
 		"ProducingCountry": "Kitzbühel",
 		"AgentEmail": "convallis.est@protonmail.net",
 		"Comments": ""
@@ -1561,7 +1679,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-07-10 19:27:35",
-		"Сost": "29 005",
+		"Cost": "29 005",
 		"ProducingCountry": "Springfield",
 		"AgentEmail": "magna.ut.tincidunt@aol.ca",
 		"Comments": ""
@@ -1573,7 +1691,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2025-03-05 21:35:52",
-		"Сost": "37 945",
+		"Cost": "37 945",
 		"ProducingCountry": "Kędzierzyn-Koźle",
 		"AgentEmail": "justo.proin@outlook.edu",
 		"Comments": ""
@@ -1585,7 +1703,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2025-04-25 02:06:33",
-		"Сost": "25 401",
+		"Cost": "25 401",
 		"ProducingCountry": "Frauenkirchen",
 		"AgentEmail": "felis@yahoo.ca",
 		"Comments": ""
@@ -1597,7 +1715,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2025-02-11 23:55:00",
-		"Сost": "5 237",
+		"Cost": "5 237",
 		"ProducingCountry": "Tula",
 		"AgentEmail": "nulla@google.edu",
 		"Comments": ""
@@ -1609,7 +1727,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2023-10-11 11:41:28",
-		"Сost": "81 659",
+		"Cost": "81 659",
 		"ProducingCountry": "Bremen",
 		"AgentEmail": "egestas.a.scelerisque@yahoo.edu",
 		"Comments": ""
@@ -1621,7 +1739,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-10-05 14:09:24",
-		"Сost": "54 579",
+		"Cost": "54 579",
 		"ProducingCountry": "Jecheon",
 		"AgentEmail": "ac.mattis.velit@yahoo.edu",
 		"Comments": ""
@@ -1633,7 +1751,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-05-09 14:27:05",
-		"Сost": "90 429",
+		"Cost": "90 429",
 		"ProducingCountry": "Volgograd",
 		"AgentEmail": "nulla.magna@icloud.edu",
 		"Comments": ""
@@ -1645,7 +1763,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-07-24 09:46:41",
-		"Сost": "48 018",
+		"Cost": "48 018",
 		"ProducingCountry": "Huesca",
 		"AgentEmail": "suspendisse.non.leo@protonmail.ca",
 		"Comments": ""
@@ -1657,7 +1775,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-06-01 06:04:22",
-		"Сost": "48 871",
+		"Cost": "48 871",
 		"ProducingCountry": "New Haven",
 		"AgentEmail": "placerat@yahoo.net",
 		"Comments": ""
@@ -1669,7 +1787,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-08-12 17:29:55",
-		"Сost": "93 373",
+		"Cost": "93 373",
 		"ProducingCountry": "Güssing",
 		"AgentEmail": "sodales.mauris@outlook.com",
 		"Comments": ""
@@ -1681,7 +1799,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-08-18 11:35:32",
-		"Сost": "34 506",
+		"Cost": "34 506",
 		"ProducingCountry": "Sakhalin",
 		"AgentEmail": "faucibus.leo@google.ca",
 		"Comments": ""
@@ -1693,7 +1811,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-03-19 17:36:39",
-		"Сost": "60 099",
+		"Cost": "60 099",
 		"ProducingCountry": "Tczew",
 		"AgentEmail": "sagittis.semper.nam@yahoo.net",
 		"Comments": ""
@@ -1705,7 +1823,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2025-03-07 18:37:06",
-		"Сost": "57 464",
+		"Cost": "57 464",
 		"ProducingCountry": "Ebenthal in Kärnten",
 		"AgentEmail": "a.dui.cras@icloud.org",
 		"Comments": ""
@@ -1717,7 +1835,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-03-07 13:32:28",
-		"Сost": "52 601",
+		"Cost": "52 601",
 		"ProducingCountry": "Åkersberga",
 		"AgentEmail": "sed@icloud.couk",
 		"Comments": ""
@@ -1729,7 +1847,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-11-14 01:55:35",
-		"Сost": "73 087",
+		"Cost": "73 087",
 		"ProducingCountry": "Białystok",
 		"AgentEmail": "feugiat.nec.diam@protonmail.net",
 		"Comments": ""
@@ -1741,7 +1859,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-08-27 00:39:34",
-		"Сost": "94 075",
+		"Cost": "94 075",
 		"ProducingCountry": "Częstochowa",
 		"AgentEmail": "suspendisse.dui@hotmail.edu",
 		"Comments": ""
@@ -1753,7 +1871,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2025-04-26 08:08:12",
-		"Сost": "71 541",
+		"Cost": "71 541",
 		"ProducingCountry": "Koekelberg",
 		"AgentEmail": "purus.duis@icloud.org",
 		"Comments": ""
@@ -1765,7 +1883,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-04-15 11:39:20",
-		"Сost": "54 229",
+		"Cost": "54 229",
 		"ProducingCountry": "Compiano",
 		"AgentEmail": "nullam.enim@google.edu",
 		"Comments": ""
@@ -1777,7 +1895,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2023-06-14 01:43:45",
-		"Сost": "80 993",
+		"Cost": "80 993",
 		"ProducingCountry": "Logroño",
 		"AgentEmail": "cras.dictum@google.ca",
 		"Comments": ""
@@ -1789,7 +1907,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-09-25 21:47:45",
-		"Сost": "99 308",
+		"Cost": "99 308",
 		"ProducingCountry": "West Jordan",
 		"AgentEmail": "diam.proin.dolor@hotmail.com",
 		"Comments": ""
@@ -1801,7 +1919,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-12-22 12:51:11",
-		"Сost": "78 152",
+		"Cost": "78 152",
 		"ProducingCountry": "Zeitz",
 		"AgentEmail": "magna.ut.tincidunt@aol.edu",
 		"Comments": ""
@@ -1813,7 +1931,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2023-09-23 23:47:36",
-		"Сost": "1 937",
+		"Cost": "1 937",
 		"ProducingCountry": "Badajoz",
 		"AgentEmail": "ligula.aenean@aol.org",
 		"Comments": ""
@@ -1825,7 +1943,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-09-16 04:29:26",
-		"Сost": "30 022",
+		"Cost": "30 022",
 		"ProducingCountry": "College",
 		"AgentEmail": "habitant.morbi@outlook.edu",
 		"Comments": ""
@@ -1837,7 +1955,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-06-25 10:47:31",
-		"Сost": "27 949",
+		"Cost": "27 949",
 		"ProducingCountry": "León",
 		"AgentEmail": "nisi.dictum.augue@outlook.com",
 		"Comments": ""
@@ -1849,7 +1967,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-01-21 11:34:29",
-		"Сost": "75 785",
+		"Cost": "75 785",
 		"ProducingCountry": "Jönköping",
 		"AgentEmail": "tellus.lorem.eu@protonmail.couk",
 		"Comments": ""
@@ -1861,7 +1979,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-08-21 07:43:41",
-		"Сost": "26 909",
+		"Cost": "26 909",
 		"ProducingCountry": "Ostrowiec Świętokrzyski",
 		"AgentEmail": "nec.mollis@aol.org",
 		"Comments": ""
@@ -1873,7 +1991,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-12-02 03:50:53",
-		"Сost": "63 963",
+		"Cost": "63 963",
 		"ProducingCountry": "Narimanov",
 		"AgentEmail": "ante.ipsum.primis@hotmail.org",
 		"Comments": ""
@@ -1885,7 +2003,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-09-23 12:14:55",
-		"Сost": "49 458",
+		"Cost": "49 458",
 		"ProducingCountry": "Bolinne",
 		"AgentEmail": "etiam.vestibulum@icloud.couk",
 		"Comments": ""
@@ -1897,7 +2015,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-07-04 17:46:00",
-		"Сost": "12 448",
+		"Cost": "12 448",
 		"ProducingCountry": "Opole",
 		"AgentEmail": "interdum.libero.dui@aol.ca",
 		"Comments": ""
@@ -1909,7 +2027,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-05-31 18:58:57",
-		"Сost": "68 096",
+		"Cost": "68 096",
 		"ProducingCountry": "Ryazan",
 		"AgentEmail": "purus@outlook.couk",
 		"Comments": ""
@@ -1921,7 +2039,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-08-12 20:24:59",
-		"Сost": "4 218",
+		"Cost": "4 218",
 		"ProducingCountry": "Toruń",
 		"AgentEmail": "ipsum.cursus@protonmail.com",
 		"Comments": ""
@@ -1933,7 +2051,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-01-03 13:41:06",
-		"Сost": "18 325",
+		"Cost": "18 325",
 		"ProducingCountry": "Lodelinsart",
 		"AgentEmail": "nunc.sed.libero@protonmail.com",
 		"Comments": ""
@@ -1945,7 +2063,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-10-01 14:27:07",
-		"Сost": "81 221",
+		"Cost": "81 221",
 		"ProducingCountry": "Fusignano",
 		"AgentEmail": "pellentesque.tellus.sem@hotmail.edu",
 		"Comments": ""
@@ -1957,7 +2075,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-31 23:39:24",
-		"Сost": "59 535",
+		"Cost": "59 535",
 		"ProducingCountry": "Oviedo",
 		"AgentEmail": "gravida.nunc@yahoo.couk",
 		"Comments": ""
@@ -1969,7 +2087,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-10-29 09:31:52",
-		"Сost": "49 695",
+		"Cost": "49 695",
 		"ProducingCountry": "Houston",
 		"AgentEmail": "velit.in.aliquet@google.ca",
 		"Comments": ""
@@ -1981,7 +2099,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-03-04 19:25:26",
-		"Сost": "1 334",
+		"Cost": "1 334",
 		"ProducingCountry": "Mjölby",
 		"AgentEmail": "dis.parturient@aol.couk",
 		"Comments": ""
@@ -1993,7 +2111,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-01-11 00:32:36",
-		"Сost": "57 146",
+		"Cost": "57 146",
 		"ProducingCountry": "Solvychegodsk",
 		"AgentEmail": "quisque.tincidunt.pede@outlook.edu",
 		"Comments": ""
@@ -2005,7 +2123,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-04-08 23:51:50",
-		"Сost": "27 957",
+		"Cost": "27 957",
 		"ProducingCountry": "Tyumen",
 		"AgentEmail": "aenean.gravida@aol.edu",
 		"Comments": ""
@@ -2017,7 +2135,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-05-03 15:52:40",
-		"Сost": "98 576",
+		"Cost": "98 576",
 		"ProducingCountry": "Torrevieja",
 		"AgentEmail": "nunc.pulvinar@protonmail.edu",
 		"Comments": ""
@@ -2029,7 +2147,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-06-14 06:30:48",
-		"Сost": "69 292",
+		"Cost": "69 292",
 		"ProducingCountry": "Tomaszów Mazowiecki",
 		"AgentEmail": "tempus.scelerisque@aol.net",
 		"Comments": ""
@@ -2041,7 +2159,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-12-04 20:41:37",
-		"Сost": "11 274",
+		"Cost": "11 274",
 		"ProducingCountry": "Jeonju",
 		"AgentEmail": "dictum.magna@aol.ca",
 		"Comments": ""
@@ -2053,7 +2171,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2025-03-20 06:24:48",
-		"Сost": "17 980",
+		"Cost": "17 980",
 		"ProducingCountry": "Sakhalin",
 		"AgentEmail": "et.magnis@protonmail.com",
 		"Comments": ""
@@ -2065,7 +2183,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-08-29 09:17:43",
-		"Сost": "31 209",
+		"Cost": "31 209",
 		"ProducingCountry": "Saint-Quentin",
 		"AgentEmail": "nulla.interdum@google.com",
 		"Comments": ""
@@ -2077,7 +2195,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-11-03 20:02:00",
-		"Сost": "64 006",
+		"Cost": "64 006",
 		"ProducingCountry": "Valladolid",
 		"AgentEmail": "at.nisi@icloud.net",
 		"Comments": ""
@@ -2089,7 +2207,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2025-01-25 13:13:14",
-		"Сost": "35 332",
+		"Cost": "35 332",
 		"ProducingCountry": "Oberwart",
 		"AgentEmail": "vulputate.dui@aol.org",
 		"Comments": ""
@@ -2101,7 +2219,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-10-19 18:43:40",
-		"Сost": "41 003",
+		"Cost": "41 003",
 		"ProducingCountry": "St. Veit an der Glan",
 		"AgentEmail": "pharetra.sed@icloud.com",
 		"Comments": ""
@@ -2113,7 +2231,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-09-21 02:00:07",
-		"Сost": "56 042",
+		"Cost": "56 042",
 		"ProducingCountry": "Palencia",
 		"AgentEmail": "morbi.tristique@hotmail.org",
 		"Comments": ""
@@ -2125,7 +2243,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-06-28 05:03:03",
-		"Сost": "48 191",
+		"Cost": "48 191",
 		"ProducingCountry": "Jecheon",
 		"AgentEmail": "turpis.nec@google.net",
 		"Comments": ""
@@ -2137,7 +2255,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-08-28 21:35:46",
-		"Сost": 786,
+		"Cost": 786,
 		"ProducingCountry": "Bottidda",
 		"AgentEmail": "neque.sed.sem@aol.com",
 		"Comments": ""
@@ -2149,7 +2267,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-08-26 18:07:48",
-		"Сost": "32 640",
+		"Cost": "32 640",
 		"ProducingCountry": "Tulsa",
 		"AgentEmail": "curae.phasellus@outlook.edu",
 		"Comments": ""
@@ -2161,7 +2279,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2025-01-12 01:33:58",
-		"Сost": "29 491",
+		"Cost": "29 491",
 		"ProducingCountry": "Almería",
 		"AgentEmail": "varius.ultrices@outlook.com",
 		"Comments": ""
@@ -2173,7 +2291,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-04-13 03:17:39",
-		"Сost": "94 418",
+		"Cost": "94 418",
 		"ProducingCountry": "Telfs",
 		"AgentEmail": "lectus.sit@google.net",
 		"Comments": ""
@@ -2185,7 +2303,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2025-03-28 11:00:06",
-		"Сost": "15 400",
+		"Cost": "15 400",
 		"ProducingCountry": "Orenburg",
 		"AgentEmail": "ligula.nullam.feugiat@protonmail.edu",
 		"Comments": ""
@@ -2197,7 +2315,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-12-06 20:25:47",
-		"Сost": "84 348",
+		"Cost": "84 348",
 		"ProducingCountry": "San Lorenzo",
 		"AgentEmail": "id.ante@google.com",
 		"Comments": ""
@@ -2209,7 +2327,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-01-19 00:13:12",
-		"Сost": "20 829",
+		"Cost": "20 829",
 		"ProducingCountry": "Pskov",
 		"AgentEmail": "lorem.ipsum.dolor@google.net",
 		"Comments": ""
@@ -2221,7 +2339,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2025-04-25 22:25:11",
-		"Сost": "90 485",
+		"Cost": "90 485",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "augue.eu.tempor@icloud.couk",
 		"Comments": ""
@@ -2233,7 +2351,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-11-07 13:35:08",
-		"Сost": "23 898",
+		"Cost": "23 898",
 		"ProducingCountry": "Sakhalin",
 		"AgentEmail": "quisque.purus@hotmail.couk",
 		"Comments": ""
@@ -2245,7 +2363,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-20 16:15:44",
-		"Сost": "89 114",
+		"Cost": "89 114",
 		"ProducingCountry": "Saint-Herblain",
 		"AgentEmail": "cum.sociis@outlook.edu",
 		"Comments": ""
@@ -2257,7 +2375,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-12-17 19:40:02",
-		"Сost": "18 679",
+		"Cost": "18 679",
 		"ProducingCountry": "Mielec",
 		"AgentEmail": "egestas.a.dui@google.couk",
 		"Comments": ""
@@ -2269,7 +2387,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-02-27 04:33:32",
-		"Сost": "89 800",
+		"Cost": "89 800",
 		"ProducingCountry": "Beersel",
 		"AgentEmail": "ut@icloud.ca",
 		"Comments": ""
@@ -2281,7 +2399,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-12-28 13:58:01",
-		"Сost": "13 263",
+		"Cost": "13 263",
 		"ProducingCountry": "Meerdonk",
 		"AgentEmail": "facilisi.sed@outlook.org",
 		"Comments": ""
@@ -2293,7 +2411,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-10-27 21:07:15",
-		"Сost": "86 520",
+		"Cost": "86 520",
 		"ProducingCountry": "Asigliano Veneto",
 		"AgentEmail": "metus@outlook.ca",
 		"Comments": ""
@@ -2305,7 +2423,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2025-04-13 11:04:37",
-		"Сost": "97 501",
+		"Cost": "97 501",
 		"ProducingCountry": "Terni",
 		"AgentEmail": "cras.convallis.convallis@google.org",
 		"Comments": ""
@@ -2317,7 +2435,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2025-04-07 03:49:13",
-		"Сost": "18 784",
+		"Cost": "18 784",
 		"ProducingCountry": "Alès",
 		"AgentEmail": "consectetuer.mauris.id@hotmail.org",
 		"Comments": ""
@@ -2329,7 +2447,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2025-01-07 01:16:17",
-		"Сost": "7 462",
+		"Cost": "7 462",
 		"ProducingCountry": "Valéncia",
 		"AgentEmail": "ut.ipsum@icloud.net",
 		"Comments": ""
@@ -2341,7 +2459,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-01-05 18:55:18",
-		"Сost": "44 343",
+		"Cost": "44 343",
 		"ProducingCountry": "Albacete",
 		"AgentEmail": "tempor.augue@yahoo.org",
 		"Comments": ""
@@ -2353,7 +2471,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-03-11 01:31:08",
-		"Сost": "56 814",
+		"Cost": "56 814",
 		"ProducingCountry": "Melilla",
 		"AgentEmail": "ante.dictum@protonmail.edu",
 		"Comments": ""
@@ -2365,7 +2483,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-18 14:10:57",
-		"Сost": "80 089",
+		"Cost": "80 089",
 		"ProducingCountry": "Beauvais",
 		"AgentEmail": "enim.curabitur.massa@outlook.ca",
 		"Comments": ""
@@ -2377,7 +2495,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2023-06-08 08:44:05",
-		"Сost": "68 293",
+		"Cost": "68 293",
 		"ProducingCountry": "San Chirico Nuovo",
 		"AgentEmail": "nec@protonmail.com",
 		"Comments": ""
@@ -2389,7 +2507,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-08-03 04:28:07",
-		"Сost": "24 627",
+		"Cost": "24 627",
 		"ProducingCountry": "Calvello",
 		"AgentEmail": "at.egestas@hotmail.ca",
 		"Comments": ""
@@ -2401,7 +2519,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-08-30 01:10:10",
-		"Сost": "63 889",
+		"Cost": "63 889",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "curabitur@protonmail.org",
 		"Comments": ""
@@ -2413,7 +2531,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-02-06 10:57:14",
-		"Сost": "44 354",
+		"Cost": "44 354",
 		"ProducingCountry": "Norrköping",
 		"AgentEmail": "in@google.edu",
 		"Comments": ""
@@ -2425,7 +2543,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-07-11 09:56:45",
-		"Сost": "98 522",
+		"Cost": "98 522",
 		"ProducingCountry": "Ryazan",
 		"AgentEmail": "eros@outlook.edu",
 		"Comments": ""
@@ -2437,7 +2555,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-10-29 16:53:27",
-		"Сost": "30 936",
+		"Cost": "30 936",
 		"ProducingCountry": "Novgorod",
 		"AgentEmail": "mi.ac.mattis@protonmail.edu",
 		"Comments": ""
@@ -2449,7 +2567,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-12-17 05:46:20",
-		"Сost": "82 616",
+		"Cost": "82 616",
 		"ProducingCountry": "Tours",
 		"AgentEmail": "semper.nam@aol.edu",
 		"Comments": ""
@@ -2461,7 +2579,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-03-27 13:54:05",
-		"Сost": "84 033",
+		"Cost": "84 033",
 		"ProducingCountry": "Suncheon",
 		"AgentEmail": "taciti.sociosqu@hotmail.net",
 		"Comments": ""
@@ -2473,7 +2591,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-10-04 03:03:21",
-		"Сost": "26 953",
+		"Cost": "26 953",
 		"ProducingCountry": "San Cristóbal de la Laguna",
 		"AgentEmail": "massa@outlook.couk",
 		"Comments": ""
@@ -2485,7 +2603,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-01-15 16:12:28",
-		"Сost": "33 753",
+		"Cost": "33 753",
 		"ProducingCountry": "Pamplona",
 		"AgentEmail": "aliquam@hotmail.edu",
 		"Comments": ""
@@ -2497,7 +2615,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-08-21 00:29:44",
-		"Сost": "93 589",
+		"Cost": "93 589",
 		"ProducingCountry": "Logroño",
 		"AgentEmail": "elementum.at@google.net",
 		"Comments": ""
@@ -2509,7 +2627,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-06-27 10:05:27",
-		"Сost": "67 853",
+		"Cost": "67 853",
 		"ProducingCountry": "Vetlanda",
 		"AgentEmail": "justo.praesent.luctus@protonmail.net",
 		"Comments": ""
@@ -2521,7 +2639,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-09-05 08:15:07",
-		"Сost": "30 231",
+		"Cost": "30 231",
 		"ProducingCountry": "Las Palmas",
 		"AgentEmail": "in@yahoo.net",
 		"Comments": ""
@@ -2533,7 +2651,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-12-10 21:18:13",
-		"Сost": "22 630",
+		"Cost": "22 630",
 		"ProducingCountry": "Bollnäs",
 		"AgentEmail": "ullamcorper.duis@outlook.ca",
 		"Comments": ""
@@ -2545,7 +2663,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-10-09 10:28:56",
-		"Сost": "42 575",
+		"Cost": "42 575",
 		"ProducingCountry": "Beauvais",
 		"AgentEmail": "in.cursus@icloud.net",
 		"Comments": ""
@@ -2557,7 +2675,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-04-10 14:43:24",
-		"Сost": "49 957",
+		"Cost": "49 957",
 		"ProducingCountry": "Värnamo",
 		"AgentEmail": "sapien.cursus.in@icloud.couk",
 		"Comments": ""
@@ -2569,7 +2687,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-04-29 05:41:48",
-		"Сost": "6 001",
+		"Cost": "6 001",
 		"ProducingCountry": "León",
 		"AgentEmail": "donec.est@yahoo.edu",
 		"Comments": ""
@@ -2581,7 +2699,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-08-23 22:25:21",
-		"Сost": "60 590",
+		"Cost": "60 590",
 		"ProducingCountry": "Jeju",
 		"AgentEmail": "sed.dictum@google.couk",
 		"Comments": ""
@@ -2593,7 +2711,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-02-20 19:53:22",
-		"Сost": "61 354",
+		"Cost": "61 354",
 		"ProducingCountry": "Teruel",
 		"AgentEmail": "lacus.nulla.tincidunt@hotmail.edu",
 		"Comments": ""
@@ -2605,7 +2723,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-08-04 07:10:15",
-		"Сost": "57 801",
+		"Cost": "57 801",
 		"ProducingCountry": "Hollabrunn",
 		"AgentEmail": "donec.tempus.lorem@protonmail.com",
 		"Comments": ""
@@ -2617,7 +2735,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-03-23 01:46:06",
-		"Сost": "12 064",
+		"Cost": "12 064",
 		"ProducingCountry": "Ełk",
 		"AgentEmail": "sagittis.duis@hotmail.edu",
 		"Comments": ""
@@ -2629,7 +2747,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-07-21 07:45:29",
-		"Сost": "71 452",
+		"Cost": "71 452",
 		"ProducingCountry": "De Klinge",
 		"AgentEmail": "commodo.auctor@outlook.com",
 		"Comments": ""
@@ -2641,7 +2759,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2025-03-24 14:28:09",
-		"Сost": "47 381",
+		"Cost": "47 381",
 		"ProducingCountry": "Enns",
 		"AgentEmail": "a.purus.duis@aol.org",
 		"Comments": ""
@@ -2653,7 +2771,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-07-21 16:53:05",
-		"Сost": "73 283",
+		"Cost": "73 283",
 		"ProducingCountry": "Kemerovo",
 		"AgentEmail": "dictum@icloud.couk",
 		"Comments": ""
@@ -2665,7 +2783,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-08-22 08:47:22",
-		"Сost": "6 488",
+		"Cost": "6 488",
 		"ProducingCountry": "Huesca",
 		"AgentEmail": "augue@protonmail.net",
 		"Comments": ""
@@ -2677,7 +2795,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-10-11 17:09:30",
-		"Сost": "32 479",
+		"Cost": "32 479",
 		"ProducingCountry": "Pelago",
 		"AgentEmail": "est.mauris@hotmail.com",
 		"Comments": ""
@@ -2689,7 +2807,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-10-16 03:58:12",
-		"Сost": "44 373",
+		"Cost": "44 373",
 		"ProducingCountry": "Innsbruck",
 		"AgentEmail": "mauris.erat.eget@outlook.net",
 		"Comments": ""
@@ -2701,7 +2819,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-09-20 11:15:58",
-		"Сost": "99 777",
+		"Cost": "99 777",
 		"ProducingCountry": "Traiskirchen",
 		"AgentEmail": "et.ipsum.cursus@hotmail.couk",
 		"Comments": ""
@@ -2713,7 +2831,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-10-27 11:01:01",
-		"Сost": "87 489",
+		"Cost": "87 489",
 		"ProducingCountry": "Mora",
 		"AgentEmail": "euismod.urna@outlook.ca",
 		"Comments": ""
@@ -2725,7 +2843,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-07-06 18:44:51",
-		"Сost": "1 675",
+		"Cost": "1 675",
 		"ProducingCountry": "Kaluga",
 		"AgentEmail": "tempus@aol.edu",
 		"Comments": ""
@@ -2737,7 +2855,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-02-29 11:44:57",
-		"Сost": "85 618",
+		"Cost": "85 618",
 		"ProducingCountry": "Gasteiz",
 		"AgentEmail": "primis@aol.couk",
 		"Comments": ""
@@ -2749,7 +2867,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-09 18:54:44",
-		"Сost": "57 967",
+		"Cost": "57 967",
 		"ProducingCountry": "Deutschkreutz",
 		"AgentEmail": "vivamus.sit@outlook.ca",
 		"Comments": ""
@@ -2761,7 +2879,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-06-08 19:15:14",
-		"Сost": 973,
+		"Cost": 973,
 		"ProducingCountry": "Altamura",
 		"AgentEmail": "tellus.aenean@hotmail.net",
 		"Comments": ""
@@ -2773,7 +2891,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-12-03 16:02:52",
-		"Сost": "32 617",
+		"Cost": "32 617",
 		"ProducingCountry": "Waarmaarde",
 		"AgentEmail": "eleifend.nunc@outlook.com",
 		"Comments": ""
@@ -2785,7 +2903,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-07-19 14:32:47",
-		"Сost": "54 207",
+		"Cost": "54 207",
 		"ProducingCountry": "Volgograd",
 		"AgentEmail": "massa@google.org",
 		"Comments": ""
@@ -2797,7 +2915,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-10-02 15:15:19",
-		"Сost": "97 165",
+		"Cost": "97 165",
 		"ProducingCountry": "Tambov",
 		"AgentEmail": "scelerisque.neque@outlook.org",
 		"Comments": ""
@@ -2809,7 +2927,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-10-05 00:18:32",
-		"Сost": "14 992",
+		"Cost": "14 992",
 		"ProducingCountry": "Linköping",
 		"AgentEmail": "non.sollicitudin@protonmail.edu",
 		"Comments": ""
@@ -2821,7 +2939,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2023-06-15 23:57:35",
-		"Сost": "96 806",
+		"Cost": "96 806",
 		"ProducingCountry": "Finkenstein am Faaker See",
 		"AgentEmail": "nisl.sem@icloud.ca",
 		"Comments": ""
@@ -2833,7 +2951,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-11-17 08:22:02",
-		"Сost": "57 494",
+		"Cost": "57 494",
 		"ProducingCountry": "Söderhamn",
 		"AgentEmail": "in.faucibus.orci@icloud.couk",
 		"Comments": ""
@@ -2845,7 +2963,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-06-19 11:44:14",
-		"Сost": "56 619",
+		"Cost": "56 619",
 		"ProducingCountry": "Kędzierzyn-Koźle",
 		"AgentEmail": "lorem@protonmail.org",
 		"Comments": ""
@@ -2857,7 +2975,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-07-09 00:38:28",
-		"Сost": "55 304",
+		"Cost": "55 304",
 		"ProducingCountry": "Bad Vöslau",
 		"AgentEmail": "vulputate@hotmail.net",
 		"Comments": ""
@@ -2869,7 +2987,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-02-16 17:51:45",
-		"Сost": "93 248",
+		"Cost": "93 248",
 		"ProducingCountry": "Kungälv",
 		"AgentEmail": "nibh.dolor@protonmail.org",
 		"Comments": ""
@@ -2881,7 +2999,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-10-03 12:30:55",
-		"Сost": "79 195",
+		"Cost": "79 195",
 		"ProducingCountry": "Cheongju",
 		"AgentEmail": "mauris.magna@icloud.com",
 		"Comments": ""
@@ -2893,7 +3011,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-04-16 19:35:18",
-		"Сost": "55 241",
+		"Cost": "55 241",
 		"ProducingCountry": "Madison",
 		"AgentEmail": "nisl.sem@yahoo.ca",
 		"Comments": ""
@@ -2905,7 +3023,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-10-17 17:15:13",
-		"Сost": "65 765",
+		"Cost": "65 765",
 		"ProducingCountry": "Norrköping",
 		"AgentEmail": "mi.duis@google.edu",
 		"Comments": ""
@@ -2917,7 +3035,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2025-04-18 06:38:46",
-		"Сost": "71 660",
+		"Cost": "71 660",
 		"ProducingCountry": "Wals-Siezenheim",
 		"AgentEmail": "ultricies.ligula@icloud.ca",
 		"Comments": ""
@@ -2929,7 +3047,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-05-26 11:42:41",
-		"Сost": "1 694",
+		"Cost": "1 694",
 		"ProducingCountry": "Ehein",
 		"AgentEmail": "pharetra@hotmail.couk",
 		"Comments": ""
@@ -2941,7 +3059,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2025-02-15 00:57:45",
-		"Сost": "52 484",
+		"Cost": "52 484",
 		"ProducingCountry": "Santander",
 		"AgentEmail": "neque.tellus@yahoo.com",
 		"Comments": ""
@@ -2953,7 +3071,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-03-22 10:04:17",
-		"Сost": "8 927",
+		"Cost": "8 927",
 		"ProducingCountry": "Essen",
 		"AgentEmail": "tellus.phasellus@icloud.net",
 		"Comments": ""
@@ -2965,7 +3083,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-12-24 00:44:15",
-		"Сost": "76 228",
+		"Cost": "76 228",
 		"ProducingCountry": "Dangjin",
 		"AgentEmail": "ac.mi.eleifend@yahoo.net",
 		"Comments": ""
@@ -2977,7 +3095,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-02-27 15:29:10",
-		"Сost": "12 672",
+		"Cost": "12 672",
 		"ProducingCountry": "Kempten",
 		"AgentEmail": "nec.metus@hotmail.couk",
 		"Comments": ""
@@ -2989,7 +3107,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-06-02 16:43:51",
-		"Сost": "61 055",
+		"Cost": "61 055",
 		"ProducingCountry": "Åkersberga",
 		"AgentEmail": "lobortis.quis.pede@yahoo.org",
 		"Comments": ""
@@ -3001,7 +3119,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2025-01-30 08:58:07",
-		"Сost": "93 570",
+		"Cost": "93 570",
 		"ProducingCountry": "Moscow",
 		"AgentEmail": "pede.nonummy@google.couk",
 		"Comments": ""
@@ -3013,7 +3131,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-12-04 10:16:15",
-		"Сost": "23 187",
+		"Cost": "23 187",
 		"ProducingCountry": "Atlanta",
 		"AgentEmail": "proin.velit@outlook.net",
 		"Comments": ""
@@ -3025,7 +3143,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-07-31 18:22:58",
-		"Сost": "49 571",
+		"Cost": "49 571",
 		"ProducingCountry": "Orenburg",
 		"AgentEmail": "blandit.nam@protonmail.org",
 		"Comments": ""
@@ -3037,7 +3155,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-07-20 14:15:27",
-		"Сost": "49 030",
+		"Cost": "49 030",
 		"ProducingCountry": "Santander",
 		"AgentEmail": "convallis.ligula.donec@aol.couk",
 		"Comments": ""
@@ -3049,7 +3167,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2025-03-13 08:29:20",
-		"Сost": "5 662",
+		"Cost": "5 662",
 		"ProducingCountry": "Pontevedra",
 		"AgentEmail": "dolor@hotmail.edu",
 		"Comments": ""
@@ -3061,7 +3179,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-06-11 10:54:45",
-		"Сost": "8 132",
+		"Cost": "8 132",
 		"ProducingCountry": "Logroño",
 		"AgentEmail": "dolor.egestas@google.org",
 		"Comments": ""
@@ -3073,7 +3191,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-04-26 22:34:20",
-		"Сost": "91 486",
+		"Cost": "91 486",
 		"ProducingCountry": "Wolfurt",
 		"AgentEmail": "erat@hotmail.net",
 		"Comments": ""
@@ -3085,7 +3203,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-03-30 22:27:00",
-		"Сost": "33 788",
+		"Cost": "33 788",
 		"ProducingCountry": "Mörfelden-Walldorf",
 		"AgentEmail": "lacus@icloud.ca",
 		"Comments": ""
@@ -3097,7 +3215,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-05-16 06:11:51",
-		"Сost": "74 253",
+		"Cost": "74 253",
 		"ProducingCountry": "Saalfelden am Steinernen Meer",
 		"AgentEmail": "natoque@protonmail.org",
 		"Comments": ""
@@ -3109,7 +3227,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-03-29 18:31:13",
-		"Сost": "16 786",
+		"Cost": "16 786",
 		"ProducingCountry": "Metz",
 		"AgentEmail": "consequat@yahoo.edu",
 		"Comments": ""
@@ -3121,7 +3239,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-04-05 06:56:34",
-		"Сost": "39 914",
+		"Cost": "39 914",
 		"ProducingCountry": "Madrid",
 		"AgentEmail": "sed.malesuada.augue@icloud.com",
 		"Comments": ""
@@ -3133,7 +3251,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2025-01-02 06:59:03",
-		"Сost": "42 679",
+		"Cost": "42 679",
 		"ProducingCountry": "Vöcklabruck",
 		"AgentEmail": "ante.nunc@icloud.org",
 		"Comments": ""
@@ -3145,7 +3263,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-06-27 12:31:38",
-		"Сost": "85 871",
+		"Cost": "85 871",
 		"ProducingCountry": "Gijón",
 		"AgentEmail": "aenean.gravida@protonmail.com",
 		"Comments": ""
@@ -3157,7 +3275,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-05-06 05:01:13",
-		"Сost": "99 253",
+		"Cost": "99 253",
 		"ProducingCountry": "Avesta",
 		"AgentEmail": "est@google.ca",
 		"Comments": ""
@@ -3169,7 +3287,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-07-28 03:40:54",
-		"Сost": "52 252",
+		"Cost": "52 252",
 		"ProducingCountry": "Bevagna",
 		"AgentEmail": "molestie.sodales@icloud.couk",
 		"Comments": ""
@@ -3181,7 +3299,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-11-13 02:55:22",
-		"Сost": "12 267",
+		"Cost": "12 267",
 		"ProducingCountry": "Badajoz",
 		"AgentEmail": "neque.morbi.quis@aol.net",
 		"Comments": ""
@@ -3193,7 +3311,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-02-07 18:30:59",
-		"Сost": "40 463",
+		"Cost": "40 463",
 		"ProducingCountry": "Laval",
 		"AgentEmail": "hymenaeos@hotmail.edu",
 		"Comments": ""
@@ -3205,7 +3323,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2025-02-11 07:53:34",
-		"Сost": "32 831",
+		"Cost": "32 831",
 		"ProducingCountry": "Cáceres",
 		"AgentEmail": "risus.nulla@icloud.org",
 		"Comments": ""
@@ -3217,7 +3335,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-09-04 14:10:11",
-		"Сost": "7 493",
+		"Cost": "7 493",
 		"ProducingCountry": "Marseille",
 		"AgentEmail": "diam@yahoo.edu",
 		"Comments": ""
@@ -3229,7 +3347,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-05-12 15:04:19",
-		"Сost": "75 889",
+		"Cost": "75 889",
 		"ProducingCountry": "Jeju",
 		"AgentEmail": "dolor.dapibus@google.couk",
 		"Comments": ""
@@ -3241,7 +3359,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-11-19 18:46:03",
-		"Сost": "78 940",
+		"Cost": "78 940",
 		"ProducingCountry": "Namyangju",
 		"AgentEmail": "dictum@yahoo.couk",
 		"Comments": ""
@@ -3253,7 +3371,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-02-26 22:25:53",
-		"Сost": "14 052",
+		"Cost": "14 052",
 		"ProducingCountry": "Celle",
 		"AgentEmail": "ornare.fusce.mollis@protonmail.couk",
 		"Comments": ""
@@ -3265,7 +3383,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-12-24 02:53:05",
-		"Сost": "83 388",
+		"Cost": "83 388",
 		"ProducingCountry": "Sambreville",
 		"AgentEmail": "tempor.erat@outlook.ca",
 		"Comments": ""
@@ -3277,7 +3395,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-07-07 19:24:16",
-		"Сost": "39 474",
+		"Cost": "39 474",
 		"ProducingCountry": "Calais",
 		"AgentEmail": "at@yahoo.ca",
 		"Comments": ""
@@ -3289,7 +3407,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-10-15 14:02:23",
-		"Сost": "93 062",
+		"Cost": "93 062",
 		"ProducingCountry": "Paju",
 		"AgentEmail": "elit.pellentesque.a@hotmail.com",
 		"Comments": ""
@@ -3301,7 +3419,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-12-21 00:19:34",
-		"Сost": "58 361",
+		"Cost": "58 361",
 		"ProducingCountry": "Gary",
 		"AgentEmail": "ut@aol.net",
 		"Comments": ""
@@ -3313,7 +3431,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-07-17 18:54:24",
-		"Сost": "32 658",
+		"Cost": "32 658",
 		"ProducingCountry": "Campobasso",
 		"AgentEmail": "sociis@outlook.edu",
 		"Comments": ""
@@ -3325,7 +3443,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2025-04-24 17:14:50",
-		"Сost": "62 403",
+		"Cost": "62 403",
 		"ProducingCountry": "Kelkheim",
 		"AgentEmail": "dis.parturient@aol.edu",
 		"Comments": ""
@@ -3337,7 +3455,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-12-25 22:48:22",
-		"Сost": "33 580",
+		"Cost": "33 580",
 		"ProducingCountry": "Jeju",
 		"AgentEmail": "at.augue@icloud.couk",
 		"Comments": ""
@@ -3349,7 +3467,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-05-09 19:52:04",
-		"Сost": "32 317",
+		"Cost": "32 317",
 		"ProducingCountry": "Wittenberg",
 		"AgentEmail": "id.sapien.cras@hotmail.edu",
 		"Comments": ""
@@ -3361,7 +3479,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-04-06 20:21:09",
-		"Сost": "2 841",
+		"Cost": "2 841",
 		"ProducingCountry": "Gijón",
 		"AgentEmail": "ultricies.dignissim.lacus@yahoo.edu",
 		"Comments": ""
@@ -3373,7 +3491,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-06-04 20:59:24",
-		"Сost": "96 021",
+		"Cost": "96 021",
 		"ProducingCountry": "San Giovanni la Punta",
 		"AgentEmail": "purus@aol.net",
 		"Comments": ""
@@ -3385,7 +3503,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-02-05 22:16:27",
-		"Сost": "33 190",
+		"Cost": "33 190",
 		"ProducingCountry": "Innsbruck",
 		"AgentEmail": "amet@outlook.couk",
 		"Comments": ""
@@ -3397,7 +3515,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-10-28 07:13:16",
-		"Сost": "9 155",
+		"Cost": "9 155",
 		"ProducingCountry": "Orvault",
 		"AgentEmail": "varius.orci@icloud.com",
 		"Comments": ""
@@ -3409,7 +3527,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2025-03-18 23:50:50",
-		"Сost": "4 802",
+		"Cost": "4 802",
 		"ProducingCountry": "Orsogna",
 		"AgentEmail": "felis.nulla@outlook.com",
 		"Comments": ""
@@ -3421,7 +3539,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-11-17 23:47:20",
-		"Сost": "74 316",
+		"Cost": "74 316",
 		"ProducingCountry": "Elmshorn",
 		"AgentEmail": "malesuada.vel@google.org",
 		"Comments": ""
@@ -3433,7 +3551,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2025-02-23 23:40:42",
-		"Сost": "24 542",
+		"Cost": "24 542",
 		"ProducingCountry": "Yaroslavl",
 		"AgentEmail": "fusce@protonmail.org",
 		"Comments": ""
@@ -3445,7 +3563,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2025-01-18 01:05:51",
-		"Сost": "93 918",
+		"Cost": "93 918",
 		"ProducingCountry": "Tarzo",
 		"AgentEmail": "placerat.cras.dictum@hotmail.net",
 		"Comments": ""
@@ -3457,7 +3575,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-05-07 13:26:20",
-		"Сost": "35 391",
+		"Cost": "35 391",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "eleifend.vitae.erat@icloud.org",
 		"Comments": ""
@@ -3469,7 +3587,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-06-25 16:49:33",
-		"Сost": "67 542",
+		"Cost": "67 542",
 		"ProducingCountry": "Gatchina",
 		"AgentEmail": "mi.aliquam.gravida@yahoo.couk",
 		"Comments": ""
@@ -3481,7 +3599,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2025-04-15 08:51:28",
-		"Сost": "19 344",
+		"Cost": "19 344",
 		"ProducingCountry": "Värnamo",
 		"AgentEmail": "nibh.lacinia@outlook.org",
 		"Comments": ""
@@ -3493,7 +3611,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-11-15 02:36:29",
-		"Сost": "72 563",
+		"Cost": "72 563",
 		"ProducingCountry": "Anchorage",
 		"AgentEmail": "semper@hotmail.org",
 		"Comments": ""
@@ -3505,7 +3623,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-02-20 13:07:03",
-		"Сost": 170,
+		"Cost": 170,
 		"ProducingCountry": "Orenburg",
 		"AgentEmail": "nisi.dictum.augue@outlook.edu",
 		"Comments": ""
@@ -3517,7 +3635,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-04-06 22:16:28",
-		"Сost": "63 346",
+		"Cost": "63 346",
 		"ProducingCountry": "Saarlouis",
 		"AgentEmail": "turpis.vitae@aol.couk",
 		"Comments": ""
@@ -3529,7 +3647,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-12-03 08:42:50",
-		"Сost": "53 931",
+		"Cost": "53 931",
 		"ProducingCountry": "Portland",
 		"AgentEmail": "praesent.eu@protonmail.couk",
 		"Comments": ""
@@ -3541,7 +3659,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-03-24 15:52:47",
-		"Сost": "94 273",
+		"Cost": "94 273",
 		"ProducingCountry": "Vielsalm",
 		"AgentEmail": "eu.placerat@hotmail.ca",
 		"Comments": ""
@@ -3553,7 +3671,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-09-26 04:10:55",
-		"Сost": "43 311",
+		"Cost": "43 311",
 		"ProducingCountry": "Nonsan",
 		"AgentEmail": "vel@icloud.org",
 		"Comments": ""
@@ -3565,7 +3683,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-08-13 14:08:51",
-		"Сost": "80 730",
+		"Cost": "80 730",
 		"ProducingCountry": "Vannes",
 		"AgentEmail": "mauris.sit@google.ca",
 		"Comments": ""
@@ -3577,7 +3695,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-09-08 07:16:45",
-		"Сost": "40 364",
+		"Cost": "40 364",
 		"ProducingCountry": "Ajaccio",
 		"AgentEmail": "ac.libero@icloud.edu",
 		"Comments": ""
@@ -3589,7 +3707,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-12-02 01:22:51",
-		"Сost": "3 983",
+		"Cost": "3 983",
 		"ProducingCountry": "Płock",
 		"AgentEmail": "fringilla.porttitor.vulputate@google.edu",
 		"Comments": ""
@@ -3601,7 +3719,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-10-11 02:35:40",
-		"Сost": "2 378",
+		"Cost": "2 378",
 		"ProducingCountry": "Orenburg",
 		"AgentEmail": "fames.ac.turpis@hotmail.ca",
 		"Comments": ""
@@ -3613,7 +3731,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-02-27 15:41:09",
-		"Сost": "29 427",
+		"Cost": "29 427",
 		"ProducingCountry": "Bosa",
 		"AgentEmail": "nunc.est@hotmail.org",
 		"Comments": ""
@@ -3625,7 +3743,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-06-07 00:03:05",
-		"Сost": "79 174",
+		"Cost": "79 174",
 		"ProducingCountry": "Feldkirch",
 		"AgentEmail": "et.malesuada@google.ca",
 		"Comments": ""
@@ -3637,7 +3755,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2023-06-28 02:17:32",
-		"Сost": "36 406",
+		"Cost": "36 406",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "lorem.ut.aliquam@protonmail.edu",
 		"Comments": ""
@@ -3649,7 +3767,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-05-27 04:22:09",
-		"Сost": "35 392",
+		"Cost": "35 392",
 		"ProducingCountry": "Bekegem",
 		"AgentEmail": "ut.sagittis.lobortis@icloud.com",
 		"Comments": ""
@@ -3661,7 +3779,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2023-06-11 16:32:39",
-		"Сost": "42 960",
+		"Cost": "42 960",
 		"ProducingCountry": "Yeosu",
 		"AgentEmail": "eu.tempor@protonmail.couk",
 		"Comments": ""
@@ -3673,7 +3791,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-12-29 03:17:47",
-		"Сost": "43 893",
+		"Cost": "43 893",
 		"ProducingCountry": "Vidnoye",
 		"AgentEmail": "est.mauris.rhoncus@icloud.ca",
 		"Comments": ""
@@ -3685,7 +3803,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2023-12-24 11:28:00",
-		"Сost": 220,
+		"Cost": 220,
 		"ProducingCountry": "Saint Paul",
 		"AgentEmail": "morbi@icloud.org",
 		"Comments": ""
@@ -3697,7 +3815,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-06-17 18:34:11",
-		"Сost": "2 379",
+		"Cost": "2 379",
 		"ProducingCountry": "Mora",
 		"AgentEmail": "a.arcu@yahoo.edu",
 		"Comments": ""
@@ -3709,7 +3827,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-07-27 09:23:28",
-		"Сost": "6 381",
+		"Cost": "6 381",
 		"ProducingCountry": "Bexbach",
 		"AgentEmail": "sollicitudin.commodo@outlook.org",
 		"Comments": ""
@@ -3721,7 +3839,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2025-03-24 20:18:36",
-		"Сost": "82 481",
+		"Cost": "82 481",
 		"ProducingCountry": "Neder-Over-Heembeek",
 		"AgentEmail": "nulla.tempor@google.com",
 		"Comments": ""
@@ -3733,7 +3851,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2023-07-26 00:44:16",
-		"Сost": "73 601",
+		"Cost": "73 601",
 		"ProducingCountry": "Bergen Mons",
 		"AgentEmail": "in.magna@yahoo.edu",
 		"Comments": ""
@@ -3745,7 +3863,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-06-16 15:42:23",
-		"Сost": "7 227",
+		"Cost": "7 227",
 		"ProducingCountry": "Ceuta",
 		"AgentEmail": "eros.turpis@protonmail.org",
 		"Comments": ""
@@ -3757,7 +3875,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-05-03 02:28:38",
-		"Сost": "66 537",
+		"Cost": "66 537",
 		"ProducingCountry": "Creil",
 		"AgentEmail": "non.sollicitudin.a@outlook.edu",
 		"Comments": ""
@@ -3769,7 +3887,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-01-24 17:04:30",
-		"Сost": "51 038",
+		"Cost": "51 038",
 		"ProducingCountry": "Gatchina",
 		"AgentEmail": "gravida.nunc.sed@yahoo.edu",
 		"Comments": ""
@@ -3781,7 +3899,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-10-09 02:15:26",
-		"Сost": "97 398",
+		"Cost": "97 398",
 		"ProducingCountry": "Blieskastel",
 		"AgentEmail": "erat.vel@protonmail.com",
 		"Comments": ""
@@ -3793,7 +3911,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-03 12:34:57",
-		"Сost": "45 444",
+		"Cost": "45 444",
 		"ProducingCountry": "Svobodny",
 		"AgentEmail": "pellentesque.tellus.sem@protonmail.edu",
 		"Comments": ""
@@ -3805,7 +3923,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-12-13 03:21:12",
-		"Сost": "94 514",
+		"Cost": "94 514",
 		"ProducingCountry": "Sevastopol",
 		"AgentEmail": "mauris.aliquam.eu@outlook.edu",
 		"Comments": ""
@@ -3817,7 +3935,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-02-09 12:08:20",
-		"Сost": "48 237",
+		"Cost": "48 237",
 		"ProducingCountry": "Bad Vöslau",
 		"AgentEmail": "tellus.phasellus@google.edu",
 		"Comments": ""
@@ -3829,7 +3947,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-12-26 04:25:31",
-		"Сost": "67 534",
+		"Cost": "67 534",
 		"ProducingCountry": "Telfs",
 		"AgentEmail": "molestie.dapibus@protonmail.com",
 		"Comments": ""
@@ -3841,7 +3959,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-08-28 01:58:06",
-		"Сost": "10 213",
+		"Cost": "10 213",
 		"ProducingCountry": "Squillace",
 		"AgentEmail": "nisl@hotmail.edu",
 		"Comments": ""
@@ -3853,7 +3971,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-03-13 09:38:02",
-		"Сost": "1 239",
+		"Cost": "1 239",
 		"ProducingCountry": "Bremerhaven",
 		"AgentEmail": "luctus@google.couk",
 		"Comments": ""
@@ -3865,7 +3983,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-01-09 22:30:50",
-		"Сost": "37 329",
+		"Cost": "37 329",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "donec.luctus@aol.com",
 		"Comments": ""
@@ -3877,7 +3995,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-06-06 16:54:43",
-		"Сost": "70 741",
+		"Cost": "70 741",
 		"ProducingCountry": "Gooik",
 		"AgentEmail": "odio.semper@protonmail.edu",
 		"Comments": ""
@@ -3889,7 +4007,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-09-11 03:19:41",
-		"Сost": "75 365",
+		"Cost": "75 365",
 		"ProducingCountry": "Impe",
 		"AgentEmail": "eu.ligula@yahoo.net",
 		"Comments": ""
@@ -3901,7 +4019,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-03-07 22:46:54",
-		"Сost": "65 113",
+		"Cost": "65 113",
 		"ProducingCountry": "Vienna",
 		"AgentEmail": "molestie@aol.couk",
 		"Comments": ""
@@ -3913,7 +4031,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-01-13 07:43:23",
-		"Сost": "27 232",
+		"Cost": "27 232",
 		"ProducingCountry": "Boryeong",
 		"AgentEmail": "a.facilisis@yahoo.couk",
 		"Comments": ""
@@ -3925,7 +4043,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2025-02-07 04:18:16",
-		"Сost": "17 207",
+		"Cost": "17 207",
 		"ProducingCountry": "Baden",
 		"AgentEmail": "sem.mollis@yahoo.net",
 		"Comments": ""
@@ -3937,7 +4055,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-09-09 16:50:10",
-		"Сost": "16 103",
+		"Cost": "16 103",
 		"ProducingCountry": "Bastia",
 		"AgentEmail": "enim@outlook.edu",
 		"Comments": ""
@@ -3949,7 +4067,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-31 11:46:57",
-		"Сost": "71 974",
+		"Cost": "71 974",
 		"ProducingCountry": "Bad Homburg v. d. Höhe",
 		"AgentEmail": "donec.dignissim@icloud.org",
 		"Comments": ""
@@ -3961,7 +4079,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-09-11 18:46:17",
-		"Сost": "35 954",
+		"Cost": "35 954",
 		"ProducingCountry": "Bellevue",
 		"AgentEmail": "ut@google.org",
 		"Comments": ""
@@ -3973,7 +4091,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-03-21 11:33:59",
-		"Сost": "83 050",
+		"Cost": "83 050",
 		"ProducingCountry": "Habay",
 		"AgentEmail": "nec.ligula@protonmail.net",
 		"Comments": ""
@@ -3985,7 +4103,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-08-02 15:15:39",
-		"Сost": "59 133",
+		"Cost": "59 133",
 		"ProducingCountry": "Omsk",
 		"AgentEmail": "ut.odio.vel@protonmail.com",
 		"Comments": ""
@@ -3997,7 +4115,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2023-07-21 10:08:42",
-		"Сost": "75 204",
+		"Cost": "75 204",
 		"ProducingCountry": "Delitzsch",
 		"AgentEmail": "vulputate.lacus@outlook.com",
 		"Comments": ""
@@ -4009,7 +4127,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2025-03-03 07:25:18",
-		"Сost": "41 009",
+		"Cost": "41 009",
 		"ProducingCountry": "Rostock",
 		"AgentEmail": "vitae.aliquet@protonmail.net",
 		"Comments": ""
@@ -4021,7 +4139,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-05-06 03:06:02",
-		"Сost": "47 391",
+		"Cost": "47 391",
 		"ProducingCountry": "Gliwice",
 		"AgentEmail": "a.sollicitudin.orci@yahoo.edu",
 		"Comments": ""
@@ -4033,7 +4151,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-08-10 14:22:26",
-		"Сost": "85 070",
+		"Cost": "85 070",
 		"ProducingCountry": "Kurgan",
 		"AgentEmail": "sed.turpis@protonmail.edu",
 		"Comments": ""
@@ -4045,7 +4163,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-11-29 16:27:25",
-		"Сost": "35 433",
+		"Cost": "35 433",
 		"ProducingCountry": "Saint-Marcel",
 		"AgentEmail": "gravida.nunc@yahoo.org",
 		"Comments": ""
@@ -4057,7 +4175,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2025-02-27 12:25:40",
-		"Сost": "1 391",
+		"Cost": "1 391",
 		"ProducingCountry": "Sandviken",
 		"AgentEmail": "lobortis.class@hotmail.net",
 		"Comments": ""
@@ -4069,7 +4187,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-04-17 08:54:57",
-		"Сost": "94 726",
+		"Cost": "94 726",
 		"ProducingCountry": "Königs Wusterhausen",
 		"AgentEmail": "dictum.ultricies@icloud.org",
 		"Comments": ""
@@ -4081,7 +4199,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-03-09 12:00:23",
-		"Сost": "2 887",
+		"Cost": "2 887",
 		"ProducingCountry": "Glendale",
 		"AgentEmail": "arcu@google.org",
 		"Comments": ""
@@ -4093,7 +4211,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-05-30 14:30:05",
-		"Сost": "47 095",
+		"Cost": "47 095",
 		"ProducingCountry": "Riesa",
 		"AgentEmail": "posuere.enim@google.org",
 		"Comments": ""
@@ -4105,7 +4223,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-02-12 18:24:31",
-		"Сost": "10 599",
+		"Cost": "10 599",
 		"ProducingCountry": "Konstanz",
 		"AgentEmail": "commodo@icloud.couk",
 		"Comments": ""
@@ -4117,7 +4235,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-07-03 14:03:27",
-		"Сost": "19 914",
+		"Cost": "19 914",
 		"ProducingCountry": "Ivangorod",
 		"AgentEmail": "a.magna.lorem@outlook.net",
 		"Comments": ""
@@ -4129,7 +4247,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-06-10 23:17:41",
-		"Сost": "23 165",
+		"Cost": "23 165",
 		"ProducingCountry": "Zevekote",
 		"AgentEmail": "gravida.praesent.eu@protonmail.com",
 		"Comments": ""
@@ -4141,7 +4259,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-01-25 05:52:53",
-		"Сost": "68 983",
+		"Cost": "68 983",
 		"ProducingCountry": "Teruel",
 		"AgentEmail": "morbi.accumsan.laoreet@hotmail.ca",
 		"Comments": ""
@@ -4153,7 +4271,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-07-23 08:05:22",
-		"Сost": "61 428",
+		"Cost": "61 428",
 		"ProducingCountry": "Kirov",
 		"AgentEmail": "non.dapibus@icloud.com",
 		"Comments": ""
@@ -4165,7 +4283,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2025-02-21 20:26:57",
-		"Сost": "41 678",
+		"Cost": "41 678",
 		"ProducingCountry": "Tomaszów Mazowiecki",
 		"AgentEmail": "cursus.vestibulum@icloud.edu",
 		"Comments": ""
@@ -4177,7 +4295,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-06-27 04:26:44",
-		"Сost": "6 029",
+		"Cost": "6 029",
 		"ProducingCountry": "Cherbourg-Octeville",
 		"AgentEmail": "libero.mauris.aliquam@google.edu",
 		"Comments": ""
@@ -4189,7 +4307,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-05-17 23:17:55",
-		"Сost": "30 856",
+		"Cost": "30 856",
 		"ProducingCountry": "Gmunden",
 		"AgentEmail": "nulla.dignissim@google.ca",
 		"Comments": ""
@@ -4201,7 +4319,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-10-02 16:39:27",
-		"Сost": "47 345",
+		"Cost": "47 345",
 		"ProducingCountry": "Bastia Umbra",
 		"AgentEmail": "diam.nunc@outlook.ca",
 		"Comments": ""
@@ -4213,7 +4331,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-07-24 08:52:26",
-		"Сost": "57 007",
+		"Cost": "57 007",
 		"ProducingCountry": "Ávila",
 		"AgentEmail": "imperdiet.nec@google.ca",
 		"Comments": ""
@@ -4225,7 +4343,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2025-04-29 12:54:31",
-		"Сost": "20 864",
+		"Cost": "20 864",
 		"ProducingCountry": "Mülheim",
 		"AgentEmail": "tincidunt.tempus@google.ca",
 		"Comments": ""
@@ -4237,7 +4355,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-04-09 00:59:26",
-		"Сost": 238,
+		"Cost": 238,
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "ipsum.ac.mi@aol.net",
 		"Comments": ""
@@ -4249,7 +4367,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-09-06 04:17:27",
-		"Сost": "62 364",
+		"Cost": "62 364",
 		"ProducingCountry": "Smolensk",
 		"AgentEmail": "vulputate@google.edu",
 		"Comments": ""
@@ -4261,7 +4379,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2025-04-01 15:27:22",
-		"Сost": "82 143",
+		"Cost": "82 143",
 		"ProducingCountry": "Beho",
 		"AgentEmail": "lacinia@aol.org",
 		"Comments": ""
@@ -4273,7 +4391,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-08-17 08:57:12",
-		"Сost": "46 113",
+		"Cost": "46 113",
 		"ProducingCountry": "Schwaz",
 		"AgentEmail": "duis.volutpat.nunc@protonmail.com",
 		"Comments": ""
@@ -4285,7 +4403,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-09-23 01:22:56",
-		"Сost": "20 150",
+		"Cost": "20 150",
 		"ProducingCountry": "Segovia",
 		"AgentEmail": "malesuada.id@aol.com",
 		"Comments": ""
@@ -4297,7 +4415,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2025-03-21 03:37:45",
-		"Сost": "46 131",
+		"Cost": "46 131",
 		"ProducingCountry": "Heist-op-den-Berg",
 		"AgentEmail": "convallis.dolor.quisque@hotmail.couk",
 		"Comments": ""
@@ -4309,7 +4427,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-01-17 09:08:16",
-		"Сost": "92 423",
+		"Cost": "92 423",
 		"ProducingCountry": "Skövde",
 		"AgentEmail": "consequat@protonmail.ca",
 		"Comments": ""
@@ -4321,7 +4439,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-10-05 08:01:47",
-		"Сost": "13 464",
+		"Cost": "13 464",
 		"ProducingCountry": "Kostroma",
 		"AgentEmail": "mauris.id@aol.couk",
 		"Comments": ""
@@ -4333,7 +4451,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-11-23 13:10:18",
-		"Сost": "1 439",
+		"Cost": "1 439",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "pede.suspendisse.dui@yahoo.net",
 		"Comments": ""
@@ -4345,7 +4463,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-12-10 07:04:38",
-		"Сost": "55 546",
+		"Cost": "55 546",
 		"ProducingCountry": "West Valley City",
 		"AgentEmail": "nec.eleifend@google.net",
 		"Comments": ""
@@ -4357,7 +4475,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-05-28 03:52:05",
-		"Сost": "27 679",
+		"Cost": "27 679",
 		"ProducingCountry": "Tyumen",
 		"AgentEmail": "egestas.urna@hotmail.couk",
 		"Comments": ""
@@ -4369,7 +4487,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-09-09 09:48:08",
-		"Сost": "87 587",
+		"Cost": "87 587",
 		"ProducingCountry": "Oudenburg",
 		"AgentEmail": "etiam.gravida.molestie@protonmail.ca",
 		"Comments": ""
@@ -4381,7 +4499,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-09-27 16:29:05",
-		"Сost": "45 173",
+		"Cost": "45 173",
 		"ProducingCountry": "A Coruña",
 		"AgentEmail": "ac.mattis@google.net",
 		"Comments": ""
@@ -4393,7 +4511,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-04-27 15:42:24",
-		"Сost": "73 717",
+		"Cost": "73 717",
 		"ProducingCountry": "Dongelberg",
 		"AgentEmail": "ut@hotmail.couk",
 		"Comments": ""
@@ -4405,7 +4523,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-12-22 23:00:08",
-		"Сost": "20 022",
+		"Cost": "20 022",
 		"ProducingCountry": "Yeosu",
 		"AgentEmail": "quis.arcu.vel@hotmail.com",
 		"Comments": ""
@@ -4417,7 +4535,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-12-12 21:51:52",
-		"Сost": "54 191",
+		"Cost": "54 191",
 		"ProducingCountry": "Outrijve",
 		"AgentEmail": "sapien@yahoo.org",
 		"Comments": ""
@@ -4429,7 +4547,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2025-01-21 10:00:42",
-		"Сost": "48 663",
+		"Cost": "48 663",
 		"ProducingCountry": "LiŽge",
 		"AgentEmail": "nec.malesuada@google.net",
 		"Comments": ""
@@ -4441,7 +4559,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-12-08 01:48:56",
-		"Сost": "68 314",
+		"Cost": "68 314",
 		"ProducingCountry": "Ludwigsfelde",
 		"AgentEmail": "vitae.mauris@hotmail.com",
 		"Comments": ""
@@ -4453,7 +4571,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-06-30 08:23:03",
-		"Сost": "10 446",
+		"Cost": "10 446",
 		"ProducingCountry": "Vielsalm",
 		"AgentEmail": "mauris.vestibulum@outlook.org",
 		"Comments": ""
@@ -4465,7 +4583,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2023-10-31 21:50:14",
-		"Сost": "98 055",
+		"Cost": "98 055",
 		"ProducingCountry": "Zele",
 		"AgentEmail": "duis.mi@google.edu",
 		"Comments": ""
@@ -4477,7 +4595,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-06-21 17:16:58",
-		"Сost": "40 443",
+		"Cost": "40 443",
 		"ProducingCountry": "Ludvika",
 		"AgentEmail": "nulla.facilisis@icloud.org",
 		"Comments": ""
@@ -4489,7 +4607,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-06 23:37:39",
-		"Сost": "67 709",
+		"Cost": "67 709",
 		"ProducingCountry": "Tarrasa",
 		"AgentEmail": "consectetuer.euismod@outlook.ca",
 		"Comments": ""
@@ -4501,7 +4619,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2025-02-23 15:10:30",
-		"Сost": "6 807",
+		"Cost": "6 807",
 		"ProducingCountry": "Landshut",
 		"AgentEmail": "id.magna@icloud.edu",
 		"Comments": ""
@@ -4513,7 +4631,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2023-05-15 20:04:05",
-		"Сost": "59 147",
+		"Cost": "59 147",
 		"ProducingCountry": "Murcia",
 		"AgentEmail": "fermentum.risus@aol.ca",
 		"Comments": ""
@@ -4525,7 +4643,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-06-14 07:21:27",
-		"Сost": "70 230",
+		"Cost": "70 230",
 		"ProducingCountry": "Bakal",
 		"AgentEmail": "dignissim@icloud.ca",
 		"Comments": ""
@@ -4537,7 +4655,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-12-17 16:14:33",
-		"Сost": "10 482",
+		"Cost": "10 482",
 		"ProducingCountry": "Clermont-Ferrand",
 		"AgentEmail": "semper.tellus@aol.org",
 		"Comments": ""
@@ -4549,7 +4667,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-07-26 04:45:31",
-		"Сost": "37 741",
+		"Cost": "37 741",
 		"ProducingCountry": "Pamplona",
 		"AgentEmail": "morbi.metus@yahoo.ca",
 		"Comments": ""
@@ -4561,7 +4679,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-09-25 23:47:51",
-		"Сost": "38 105",
+		"Cost": "38 105",
 		"ProducingCountry": "Gongju",
 		"AgentEmail": "neque@icloud.com",
 		"Comments": ""
@@ -4573,7 +4691,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-06-15 08:33:08",
-		"Сost": "89 628",
+		"Cost": "89 628",
 		"ProducingCountry": "Neuruppin",
 		"AgentEmail": "suspendisse.aliquet@protonmail.com",
 		"Comments": ""
@@ -4585,7 +4703,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-03-10 14:42:07",
-		"Сost": "47 082",
+		"Cost": "47 082",
 		"ProducingCountry": "Sant'Elpidio a Mare",
 		"AgentEmail": "mollis.phasellus.libero@protonmail.net",
 		"Comments": ""
@@ -4597,7 +4715,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-11-09 04:20:12",
-		"Сost": "6 963",
+		"Cost": "6 963",
 		"ProducingCountry": "Seogwipo",
 		"AgentEmail": "mauris.eu.elit@protonmail.edu",
 		"Comments": ""
@@ -4609,7 +4727,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-01-13 05:22:12",
-		"Сost": "54 266",
+		"Cost": "54 266",
 		"ProducingCountry": "Oldenburg",
 		"AgentEmail": "class.aptent@hotmail.net",
 		"Comments": ""
@@ -4621,7 +4739,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-04-26 06:36:11",
-		"Сost": "94 381",
+		"Cost": "94 381",
 		"ProducingCountry": "Linköping",
 		"AgentEmail": "enim.etiam@google.com",
 		"Comments": ""
@@ -4633,7 +4751,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-04-12 19:07:17",
-		"Сost": "51 045",
+		"Cost": "51 045",
 		"ProducingCountry": "Sakhalin",
 		"AgentEmail": "fermentum.arcu@aol.edu",
 		"Comments": ""
@@ -4645,7 +4763,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-09-19 05:36:13",
-		"Сost": "33 932",
+		"Cost": "33 932",
 		"ProducingCountry": "Aurora",
 		"AgentEmail": "orci@hotmail.ca",
 		"Comments": ""
@@ -4657,7 +4775,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-07 18:00:37",
-		"Сost": "73 496",
+		"Cost": "73 496",
 		"ProducingCountry": "Voronezh",
 		"AgentEmail": "dolor.donec@hotmail.edu",
 		"Comments": ""
@@ -4669,7 +4787,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-02-17 14:36:43",
-		"Сost": "56 664",
+		"Cost": "56 664",
 		"ProducingCountry": "Dillenburg",
 		"AgentEmail": "conubia.nostra.per@google.org",
 		"Comments": ""
@@ -4681,7 +4799,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-09-14 10:14:19",
-		"Сost": "47 439",
+		"Cost": "47 439",
 		"ProducingCountry": "Hofors",
 		"AgentEmail": "varius.ultrices.mauris@protonmail.com",
 		"Comments": ""
@@ -4693,7 +4811,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-07-25 02:37:34",
-		"Сost": "99 690",
+		"Cost": "99 690",
 		"ProducingCountry": "Ebenthal in Kärnten",
 		"AgentEmail": "interdum.enim@yahoo.org",
 		"Comments": ""
@@ -4705,7 +4823,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-12-21 07:58:54",
-		"Сost": "6 070",
+		"Cost": "6 070",
 		"ProducingCountry": "Mjölby",
 		"AgentEmail": "nulla.integer@yahoo.org",
 		"Comments": ""
@@ -4717,7 +4835,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-08-26 14:11:10",
-		"Сost": "30 475",
+		"Cost": "30 475",
 		"ProducingCountry": "Sevastopol",
 		"AgentEmail": "parturient@hotmail.org",
 		"Comments": ""
@@ -4729,7 +4847,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2025-03-26 07:15:20",
-		"Сost": "2 703",
+		"Cost": "2 703",
 		"ProducingCountry": "Yeongju",
 		"AgentEmail": "phasellus@icloud.ca",
 		"Comments": ""
@@ -4741,7 +4859,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2025-04-25 22:28:18",
-		"Сost": "58 230",
+		"Cost": "58 230",
 		"ProducingCountry": "Hillsboro",
 		"AgentEmail": "non@hotmail.ca",
 		"Comments": ""
@@ -4753,7 +4871,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-01-31 18:57:57",
-		"Сost": 751,
+		"Cost": 751,
 		"ProducingCountry": "Klagenfurt",
 		"AgentEmail": "ut.odio@icloud.couk",
 		"Comments": ""
@@ -4765,7 +4883,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-27 09:39:46",
-		"Сost": "61 936",
+		"Cost": "61 936",
 		"ProducingCountry": "Lingen",
 		"AgentEmail": "cum.sociis@protonmail.edu",
 		"Comments": ""
@@ -4777,7 +4895,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-08-19 13:12:46",
-		"Сost": "4 427",
+		"Cost": "4 427",
 		"ProducingCountry": "Bremerhaven",
 		"AgentEmail": "quam.dignissim.pharetra@icloud.net",
 		"Comments": ""
@@ -4789,7 +4907,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2025-02-12 20:32:40",
-		"Сost": "90 450",
+		"Cost": "90 450",
 		"ProducingCountry": "Limoges",
 		"AgentEmail": "ipsum.dolor.sit@hotmail.com",
 		"Comments": ""
@@ -4801,7 +4919,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-04-05 08:25:23",
-		"Сost": "5 320",
+		"Cost": "5 320",
 		"ProducingCountry": "Ockelbo",
 		"AgentEmail": "rhoncus@yahoo.com",
 		"Comments": ""
@@ -4813,7 +4931,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-11-26 15:18:59",
-		"Сost": "22 723",
+		"Cost": "22 723",
 		"ProducingCountry": "Schwedt",
 		"AgentEmail": "nunc.risus@hotmail.edu",
 		"Comments": ""
@@ -4825,7 +4943,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-04-15 08:48:55",
-		"Сost": "46 405",
+		"Cost": "46 405",
 		"ProducingCountry": "Murmansk",
 		"AgentEmail": "non.hendrerit@protonmail.com",
 		"Comments": ""
@@ -4837,7 +4955,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-08-15 16:38:33",
-		"Сost": "19 997",
+		"Cost": "19 997",
 		"ProducingCountry": "Altach",
 		"AgentEmail": "id@outlook.ca",
 		"Comments": ""
@@ -4849,7 +4967,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-09-27 01:53:09",
-		"Сost": "22 287",
+		"Cost": "22 287",
 		"ProducingCountry": "Palma de Mallorca",
 		"AgentEmail": "magna@hotmail.ca",
 		"Comments": ""
@@ -4861,7 +4979,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2025-04-28 17:35:22",
-		"Сost": "52 106",
+		"Cost": "52 106",
 		"ProducingCountry": "Wattrelos",
 		"AgentEmail": "nunc.ac@outlook.net",
 		"Comments": ""
@@ -4873,7 +4991,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-09-19 23:43:00",
-		"Сost": "8 826",
+		"Cost": "8 826",
 		"ProducingCountry": "Borås",
 		"AgentEmail": "nisl.sem@icloud.com",
 		"Comments": ""
@@ -4885,7 +5003,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-01-13 16:28:54",
-		"Сost": "88 011",
+		"Cost": "88 011",
 		"ProducingCountry": "Istres",
 		"AgentEmail": "dui.fusce@yahoo.org",
 		"Comments": ""
@@ -4897,7 +5015,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-09-09 18:58:35",
-		"Сost": "20 320",
+		"Cost": "20 320",
 		"ProducingCountry": "Omaha",
 		"AgentEmail": "fringilla.porttitor@outlook.net",
 		"Comments": ""
@@ -4909,7 +5027,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-09-27 07:38:34",
-		"Сost": "74 971",
+		"Cost": "74 971",
 		"ProducingCountry": "Schwedt",
 		"AgentEmail": "praesent@protonmail.couk",
 		"Comments": ""
@@ -4921,7 +5039,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-06-12 01:59:55",
-		"Сost": "20 596",
+		"Cost": "20 596",
 		"ProducingCountry": "Staßfurt",
 		"AgentEmail": "tellus@hotmail.org",
 		"Comments": ""
@@ -4933,7 +5051,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-12-20 17:50:28",
-		"Сost": "16 725",
+		"Cost": "16 725",
 		"ProducingCountry": "Smetlede",
 		"AgentEmail": "donec.sollicitudin.adipiscing@yahoo.edu",
 		"Comments": ""
@@ -4945,7 +5063,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-01 01:31:36",
-		"Сost": "40 277",
+		"Cost": "40 277",
 		"ProducingCountry": "Norfolk",
 		"AgentEmail": "arcu.morbi@aol.org",
 		"Comments": ""
@@ -4957,7 +5075,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-12-06 17:08:20",
-		"Сost": "69 416",
+		"Cost": "69 416",
 		"ProducingCountry": "Schweinfurt",
 		"AgentEmail": "ornare.sagittis@icloud.edu",
 		"Comments": ""
@@ -4969,7 +5087,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2025-03-19 04:56:21",
-		"Сost": "28 140",
+		"Cost": "28 140",
 		"ProducingCountry": "Vallentuna",
 		"AgentEmail": "placerat.orci.lacus@google.org",
 		"Comments": ""
@@ -4981,7 +5099,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-10-13 20:54:11",
-		"Сost": "27 726",
+		"Cost": "27 726",
 		"ProducingCountry": "Marchtrenk",
 		"AgentEmail": "dictum.eu.placerat@outlook.net",
 		"Comments": ""
@@ -4993,7 +5111,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-12-12 23:29:13",
-		"Сost": "43 568",
+		"Cost": "43 568",
 		"ProducingCountry": "Jefferson City",
 		"AgentEmail": "erat.vivamus.nisi@yahoo.org",
 		"Comments": ""
@@ -5005,7 +5123,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-03-29 01:54:41",
-		"Сost": "22 127",
+		"Cost": "22 127",
 		"ProducingCountry": "Chesapeake",
 		"AgentEmail": "amet.orci@aol.org",
 		"Comments": ""
@@ -5017,7 +5135,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-12-19 12:47:47",
-		"Сost": "97 143",
+		"Cost": "97 143",
 		"ProducingCountry": "Bad Neuenahr-Ahrweiler",
 		"AgentEmail": "aliquet@icloud.couk",
 		"Comments": ""
@@ -5029,7 +5147,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-08-31 22:38:00",
-		"Сost": "33 281",
+		"Cost": "33 281",
 		"ProducingCountry": "Saarlouis",
 		"AgentEmail": "orci.adipiscing@icloud.net",
 		"Comments": ""
@@ -5041,7 +5159,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2023-07-07 09:26:43",
-		"Сost": "86 122",
+		"Cost": "86 122",
 		"ProducingCountry": "Aalen",
 		"AgentEmail": "ultrices.posuere@hotmail.edu",
 		"Comments": ""
@@ -5053,7 +5171,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2025-05-07 03:39:51",
-		"Сost": "97 196",
+		"Cost": "97 196",
 		"ProducingCountry": "Orlando",
 		"AgentEmail": "ultrices.duis@protonmail.net",
 		"Comments": ""
@@ -5065,7 +5183,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-28 05:09:11",
-		"Сost": "38 645",
+		"Cost": "38 645",
 		"ProducingCountry": "Jecheon",
 		"AgentEmail": "dolor.sit@icloud.edu",
 		"Comments": ""
@@ -5077,7 +5195,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-12-23 13:18:17",
-		"Сost": "52 891",
+		"Cost": "52 891",
 		"ProducingCountry": "Ostrowiec Świętokrzyski",
 		"AgentEmail": "lacus.aliquam@aol.couk",
 		"Comments": ""
@@ -5089,7 +5207,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-07-05 21:17:53",
-		"Сost": "44 713",
+		"Cost": "44 713",
 		"ProducingCountry": "Tambov",
 		"AgentEmail": "mi@aol.org",
 		"Comments": ""
@@ -5101,7 +5219,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-09-07 20:08:30",
-		"Сost": "89 492",
+		"Cost": "89 492",
 		"ProducingCountry": "Sioux City",
 		"AgentEmail": "imperdiet.ullamcorper.duis@icloud.couk",
 		"Comments": ""
@@ -5113,7 +5231,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-06-13 05:48:11",
-		"Сost": "9 975",
+		"Cost": "9 975",
 		"ProducingCountry": "Mataró",
 		"AgentEmail": "nulla.dignissim@protonmail.net",
 		"Comments": ""
@@ -5125,7 +5243,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-10-05 23:37:31",
-		"Сost": "76 069",
+		"Cost": "76 069",
 		"ProducingCountry": "Lunel",
 		"AgentEmail": "auctor.odio@icloud.org",
 		"Comments": ""
@@ -5137,7 +5255,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-15 03:22:17",
-		"Сost": "33 756",
+		"Cost": "33 756",
 		"ProducingCountry": "Avesta",
 		"AgentEmail": "vestibulum.neque.sed@aol.couk",
 		"Comments": ""
@@ -5149,7 +5267,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2023-08-10 21:43:34",
-		"Сost": "88 469",
+		"Cost": "88 469",
 		"ProducingCountry": "Lauco",
 		"AgentEmail": "enim@outlook.edu",
 		"Comments": ""
@@ -5161,7 +5279,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-03-23 06:51:06",
-		"Сost": "59 020",
+		"Cost": "59 020",
 		"ProducingCountry": "Yeongju",
 		"AgentEmail": "dolor.nulla@yahoo.org",
 		"Comments": ""
@@ -5173,7 +5291,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-10-21 23:57:19",
-		"Сost": "77 546",
+		"Cost": "77 546",
 		"ProducingCountry": "Telfs",
 		"AgentEmail": "integer.vulputate.risus@yahoo.edu",
 		"Comments": ""
@@ -5185,7 +5303,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-05-31 23:34:55",
-		"Сost": "7 161",
+		"Cost": "7 161",
 		"ProducingCountry": "Ciudad Real",
 		"AgentEmail": "cras.sed@hotmail.edu",
 		"Comments": ""
@@ -5197,7 +5315,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2025-01-05 10:44:18",
-		"Сost": "26 958",
+		"Cost": "26 958",
 		"ProducingCountry": "Couillet",
 		"AgentEmail": "dolor.sit@google.com",
 		"Comments": ""
@@ -5209,7 +5327,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-03-30 17:54:20",
-		"Сost": "51 842",
+		"Cost": "51 842",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "aliquet.proin.velit@protonmail.org",
 		"Comments": ""
@@ -5221,7 +5339,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-10-26 09:42:26",
-		"Сost": "40 492",
+		"Cost": "40 492",
 		"ProducingCountry": "Rostov",
 		"AgentEmail": "integer@protonmail.ca",
 		"Comments": ""
@@ -5233,7 +5351,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2025-01-18 22:54:06",
-		"Сost": 651,
+		"Cost": 651,
 		"ProducingCountry": "Fort Worth",
 		"AgentEmail": "nisl.maecenas@yahoo.edu",
 		"Comments": ""
@@ -5245,7 +5363,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-07-03 21:49:17",
-		"Сost": "16 683",
+		"Cost": "16 683",
 		"ProducingCountry": "Cherain",
 		"AgentEmail": "nullam@google.edu",
 		"Comments": ""
@@ -5257,7 +5375,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-06-08 21:51:56",
-		"Сost": "31 766",
+		"Cost": "31 766",
 		"ProducingCountry": "Cherbourg-Octeville",
 		"AgentEmail": "nibh.quisque.nonummy@hotmail.com",
 		"Comments": ""
@@ -5269,7 +5387,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-05-19 08:38:57",
-		"Сost": "88 329",
+		"Cost": "88 329",
 		"ProducingCountry": "Nizhny",
 		"AgentEmail": "non.enim@yahoo.net",
 		"Comments": ""
@@ -5281,7 +5399,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-08-23 10:35:27",
-		"Сost": "51 369",
+		"Cost": "51 369",
 		"ProducingCountry": "Lustenau",
 		"AgentEmail": "curabitur.dictum@google.com",
 		"Comments": ""
@@ -5293,7 +5411,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-10-19 16:39:30",
-		"Сost": "15 958",
+		"Cost": "15 958",
 		"ProducingCountry": "Szczecin",
 		"AgentEmail": "enim@aol.edu",
 		"Comments": ""
@@ -5305,7 +5423,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-09-08 20:52:14",
-		"Сost": "56 729",
+		"Cost": "56 729",
 		"ProducingCountry": "Götzis",
 		"AgentEmail": "nisl.quisque@aol.couk",
 		"Comments": ""
@@ -5317,7 +5435,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-02-22 19:15:14",
-		"Сost": 637,
+		"Cost": 637,
 		"ProducingCountry": "Mazenzele",
 		"AgentEmail": "lorem@aol.couk",
 		"Comments": ""
@@ -5329,7 +5447,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-09-07 16:19:05",
-		"Сost": "53 246",
+		"Cost": "53 246",
 		"ProducingCountry": "Orp-Jauche",
 		"AgentEmail": "eget.varius@google.edu",
 		"Comments": ""
@@ -5341,7 +5459,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-12-25 03:41:00",
-		"Сost": "57 504",
+		"Cost": "57 504",
 		"ProducingCountry": "León",
 		"AgentEmail": "placerat.velit.quisque@hotmail.ca",
 		"Comments": ""
@@ -5353,7 +5471,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-12-02 16:29:20",
-		"Сost": "33 800",
+		"Cost": "33 800",
 		"ProducingCountry": "Joliet",
 		"AgentEmail": "cras@yahoo.couk",
 		"Comments": ""
@@ -5365,7 +5483,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-11-17 14:27:21",
-		"Сost": "4 611",
+		"Cost": "4 611",
 		"ProducingCountry": "Louisville",
 		"AgentEmail": "sed@yahoo.org",
 		"Comments": ""
@@ -5377,7 +5495,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-10-31 02:29:55",
-		"Сost": "51 113",
+		"Cost": "51 113",
 		"ProducingCountry": "Limoges",
 		"AgentEmail": "massa.rutrum@aol.org",
 		"Comments": ""
@@ -5389,7 +5507,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-10-07 14:15:37",
-		"Сost": "46 797",
+		"Cost": "46 797",
 		"ProducingCountry": "Tongyeong",
 		"AgentEmail": "quisque@hotmail.com",
 		"Comments": ""
@@ -5401,7 +5519,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2023-08-25 15:41:17",
-		"Сost": "67 645",
+		"Cost": "67 645",
 		"ProducingCountry": "Kaneohe",
 		"AgentEmail": "dui@protonmail.org",
 		"Comments": ""
@@ -5413,7 +5531,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-07-21 04:00:06",
-		"Сost": "89 551",
+		"Cost": "89 551",
 		"ProducingCountry": "Gdynia",
 		"AgentEmail": "ipsum.suspendisse@aol.couk",
 		"Comments": ""
@@ -5425,7 +5543,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-09-07 05:48:57",
-		"Сost": "16 722",
+		"Cost": "16 722",
 		"ProducingCountry": "Pinneberg",
 		"AgentEmail": "blandit@yahoo.net",
 		"Comments": ""
@@ -5437,7 +5555,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-08-02 08:47:08",
-		"Сost": "69 911",
+		"Cost": "69 911",
 		"ProducingCountry": "Fratta Todina",
 		"AgentEmail": "fusce.feugiat@google.couk",
 		"Comments": ""
@@ -5449,7 +5567,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-12-13 04:59:48",
-		"Сost": "66 535",
+		"Cost": "66 535",
 		"ProducingCountry": "Butzbach",
 		"AgentEmail": "fringilla.cursus.purus@icloud.org",
 		"Comments": ""
@@ -5461,7 +5579,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2025-03-02 10:53:24",
-		"Сost": "51 775",
+		"Cost": "51 775",
 		"ProducingCountry": "Ragnies",
 		"AgentEmail": "tellus.faucibus@aol.edu",
 		"Comments": ""
@@ -5473,7 +5591,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2025-02-20 03:26:16",
-		"Сost": "27 638",
+		"Cost": "27 638",
 		"ProducingCountry": "Ludvika",
 		"AgentEmail": "aliquam.auctor@protonmail.com",
 		"Comments": ""
@@ -5485,7 +5603,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2025-04-30 02:32:04",
-		"Сost": "5 890",
+		"Cost": "5 890",
 		"ProducingCountry": "Lipetsk",
 		"AgentEmail": "libero@hotmail.org",
 		"Comments": ""
@@ -5497,7 +5615,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2025-04-24 03:30:11",
-		"Сost": "41 056",
+		"Cost": "41 056",
 		"ProducingCountry": "Palma de Mallorca",
 		"AgentEmail": "a.sollicitudin@outlook.edu",
 		"Comments": ""
@@ -5509,7 +5627,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-12-29 19:58:45",
-		"Сost": "44 915",
+		"Cost": "44 915",
 		"ProducingCountry": "Koblenz",
 		"AgentEmail": "at.nisi.cum@yahoo.couk",
 		"Comments": ""
@@ -5521,7 +5639,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2025-03-25 07:27:06",
-		"Сost": "6 164",
+		"Cost": "6 164",
 		"ProducingCountry": "Lerum",
 		"AgentEmail": "vivamus.nibh@icloud.edu",
 		"Comments": ""
@@ -5533,7 +5651,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-01-24 19:48:57",
-		"Сost": "69 737",
+		"Cost": "69 737",
 		"ProducingCountry": "Zignago",
 		"AgentEmail": "ut.pharetra@google.com",
 		"Comments": ""
@@ -5545,7 +5663,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-23 11:37:59",
-		"Сost": "96 631",
+		"Cost": "96 631",
 		"ProducingCountry": "Brunn am Gebirge",
 		"AgentEmail": "aenean@hotmail.edu",
 		"Comments": ""
@@ -5557,7 +5675,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-03-27 00:16:44",
-		"Сost": "88 691",
+		"Cost": "88 691",
 		"ProducingCountry": "Wilmington",
 		"AgentEmail": "magna.praesent@outlook.com",
 		"Comments": ""
@@ -5569,7 +5687,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2024-10-12 20:58:00",
-		"Сost": "69 334",
+		"Cost": "69 334",
 		"ProducingCountry": "Kortrijk",
 		"AgentEmail": "a.mi.fringilla@aol.org",
 		"Comments": ""
@@ -5581,7 +5699,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-10-23 14:35:11",
-		"Сost": "39 692",
+		"Cost": "39 692",
 		"ProducingCountry": "Mâcon",
 		"AgentEmail": "eu.neque@aol.net",
 		"Comments": ""
@@ -5593,7 +5711,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-01-07 13:10:57",
-		"Сost": "58 935",
+		"Cost": "58 935",
 		"ProducingCountry": "Lowell",
 		"AgentEmail": "mus@google.ca",
 		"Comments": ""
@@ -5605,7 +5723,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-08-15 10:29:53",
-		"Сost": "32 886",
+		"Cost": "32 886",
 		"ProducingCountry": "Bangor",
 		"AgentEmail": "nullam@yahoo.edu",
 		"Comments": ""
@@ -5617,7 +5735,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-08-06 01:53:03",
-		"Сost": "83 387",
+		"Cost": "83 387",
 		"ProducingCountry": "Salamanca",
 		"AgentEmail": "nulla.at@yahoo.ca",
 		"Comments": ""
@@ -5629,7 +5747,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2023-06-15 12:32:17",
-		"Сost": "84 343",
+		"Cost": "84 343",
 		"ProducingCountry": "Nonsan",
 		"AgentEmail": "consectetuer@outlook.ca",
 		"Comments": ""
@@ -5641,7 +5759,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-11-01 19:58:59",
-		"Сost": "99 231",
+		"Cost": "99 231",
 		"ProducingCountry": "Algeciras",
 		"AgentEmail": "erat.semper@aol.net",
 		"Comments": ""
@@ -5653,7 +5771,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-10-18 10:36:26",
-		"Сost": "5 830",
+		"Cost": "5 830",
 		"ProducingCountry": "Loppem",
 		"AgentEmail": "quam.quis.diam@yahoo.edu",
 		"Comments": ""
@@ -5665,7 +5783,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-01-11 05:57:19",
-		"Сost": "17 554",
+		"Cost": "17 554",
 		"ProducingCountry": "Arquata del Tronto",
 		"AgentEmail": "vel@google.com",
 		"Comments": ""
@@ -5677,7 +5795,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-12-08 15:09:42",
-		"Сost": 664,
+		"Cost": 664,
 		"ProducingCountry": "Bollnäs",
 		"AgentEmail": "mus.aenean.eget@google.com",
 		"Comments": ""
@@ -5689,7 +5807,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-02-22 08:33:34",
-		"Сost": "21 645",
+		"Cost": "21 645",
 		"ProducingCountry": "Jecheon",
 		"AgentEmail": "eu.eleifend@protonmail.org",
 		"Comments": ""
@@ -5701,7 +5819,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2024-12-07 21:42:15",
-		"Сost": "66 838",
+		"Cost": "66 838",
 		"ProducingCountry": "Badalona",
 		"AgentEmail": "sem.ut@outlook.org",
 		"Comments": ""
@@ -5713,7 +5831,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2025-01-17 03:49:48",
-		"Сost": "15 727",
+		"Cost": "15 727",
 		"ProducingCountry": "Tomsk",
 		"AgentEmail": "odio.vel.est@protonmail.edu",
 		"Comments": ""
@@ -5725,7 +5843,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-09-29 11:21:41",
-		"Сost": "27 819",
+		"Cost": "27 819",
 		"ProducingCountry": "Berlin",
 		"AgentEmail": "neque.vitae@google.net",
 		"Comments": ""
@@ -5737,7 +5855,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-01-07 22:17:51",
-		"Сost": "26 035",
+		"Cost": "26 035",
 		"ProducingCountry": "Nässjö",
 		"AgentEmail": "consectetuer@aol.org",
 		"Comments": ""
@@ -5749,7 +5867,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2023-09-12 13:11:14",
-		"Сost": "32 062",
+		"Cost": "32 062",
 		"ProducingCountry": "Gorzów Wielkopolski",
 		"AgentEmail": "quam@hotmail.org",
 		"Comments": ""
@@ -5761,7 +5879,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-07-11 19:55:02",
-		"Сost": "97 101",
+		"Cost": "97 101",
 		"ProducingCountry": "Piła",
 		"AgentEmail": "magnis.dis.parturient@google.couk",
 		"Comments": ""
@@ -5773,7 +5891,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-04-09 14:21:41",
-		"Сost": "57 225",
+		"Cost": "57 225",
 		"ProducingCountry": "Tumba",
 		"AgentEmail": "arcu@icloud.org",
 		"Comments": ""
@@ -5785,7 +5903,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2025-03-17 12:26:23",
-		"Сost": "88 427",
+		"Cost": "88 427",
 		"ProducingCountry": "Meerdonk",
 		"AgentEmail": "ad.litora.torquent@protonmail.com",
 		"Comments": ""
@@ -5797,7 +5915,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-08-06 00:43:56",
-		"Сost": "89 383",
+		"Cost": "89 383",
 		"ProducingCountry": "Ludvika",
 		"AgentEmail": "fermentum@hotmail.ca",
 		"Comments": ""
@@ -5809,7 +5927,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2025-04-03 15:39:00",
-		"Сost": "48 730",
+		"Cost": "48 730",
 		"ProducingCountry": "Ludvika",
 		"AgentEmail": "enim.commodo.hendrerit@aol.edu",
 		"Comments": ""
@@ -5821,7 +5939,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-05-20 01:29:29",
-		"Сost": "29 632",
+		"Cost": "29 632",
 		"ProducingCountry": "Prenzlau",
 		"AgentEmail": "a@google.edu",
 		"Comments": ""
@@ -5833,7 +5951,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-11-13 16:42:36",
-		"Сost": "49 209",
+		"Cost": "49 209",
 		"ProducingCountry": "Gresham",
 		"AgentEmail": "feugiat@google.ca",
 		"Comments": ""
@@ -5845,7 +5963,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-05-02 23:53:31",
-		"Сost": "46 050",
+		"Cost": "46 050",
 		"ProducingCountry": "Motala",
 		"AgentEmail": "tortor@outlook.com",
 		"Comments": ""
@@ -5857,7 +5975,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-08-02 02:17:13",
-		"Сost": "5 809",
+		"Cost": "5 809",
 		"ProducingCountry": "Shenkursk",
 		"AgentEmail": "morbi.non.sapien@hotmail.org",
 		"Comments": ""
@@ -5869,7 +5987,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-09-13 14:17:44",
-		"Сost": "80 269",
+		"Cost": "80 269",
 		"ProducingCountry": "Starachowice",
 		"AgentEmail": "in.consectetuer@aol.ca",
 		"Comments": ""
@@ -5881,7 +5999,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-04-09 14:12:47",
-		"Сost": "31 893",
+		"Cost": "31 893",
 		"ProducingCountry": "Brive-la-Gaillarde",
 		"AgentEmail": "tortor.nunc.commodo@protonmail.edu",
 		"Comments": ""
@@ -5893,7 +6011,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-06-29 03:15:21",
-		"Сost": "71 411",
+		"Cost": "71 411",
 		"ProducingCountry": "Montelupo Fiorentino",
 		"AgentEmail": "non.enim@hotmail.ca",
 		"Comments": ""
@@ -5905,7 +6023,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-09-23 06:41:08",
-		"Сost": "8 267",
+		"Cost": "8 267",
 		"ProducingCountry": "Parchim	City",
 		"AgentEmail": "tortor@protonmail.edu",
 		"Comments": ""
@@ -5917,7 +6035,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-07-04 13:08:53",
-		"Сost": "32 688",
+		"Cost": "32 688",
 		"ProducingCountry": "Corbais",
 		"AgentEmail": "ut.mi.duis@aol.com",
 		"Comments": ""
@@ -5929,7 +6047,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2025-01-22 20:27:34",
-		"Сost": "89 176",
+		"Cost": "89 176",
 		"ProducingCountry": "Borås",
 		"AgentEmail": "tristique.aliquet@icloud.org",
 		"Comments": ""
@@ -5941,7 +6059,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-07-28 22:54:38",
-		"Сost": "81 734",
+		"Cost": "81 734",
 		"ProducingCountry": "Olsztyn",
 		"AgentEmail": "adipiscing@yahoo.com",
 		"Comments": ""
@@ -5953,7 +6071,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-10-06 05:17:47",
-		"Сost": "8 867",
+		"Cost": "8 867",
 		"ProducingCountry": "Sankt Ingbert",
 		"AgentEmail": "vivamus.non@protonmail.couk",
 		"Comments": ""
@@ -5965,7 +6083,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-12-17 15:15:02",
-		"Сost": "45 095",
+		"Cost": "45 095",
 		"ProducingCountry": "Loppem",
 		"AgentEmail": "ligula.nullam@protonmail.edu",
 		"Comments": ""
@@ -5977,7 +6095,7 @@
 		"Brand": "Mazda",
 		"Title": "",
 		"ProductionDate": "2023-07-16 21:24:53",
-		"Сost": "5 226",
+		"Cost": "5 226",
 		"ProducingCountry": "Sangju",
 		"AgentEmail": "velit.quisque@google.com",
 		"Comments": ""
@@ -5989,7 +6107,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2025-05-05 03:43:02",
-		"Сost": "41 228",
+		"Cost": "41 228",
 		"ProducingCountry": "Wondelgem",
 		"AgentEmail": "faucibus.id@outlook.org",
 		"Comments": ""
@@ -6001,7 +6119,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-06-11 02:26:09",
-		"Сost": "59 480",
+		"Cost": "59 480",
 		"ProducingCountry": "Novosibirsk",
 		"AgentEmail": "duis@outlook.edu",
 		"Comments": ""
@@ -6013,7 +6131,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-12-06 19:07:06",
-		"Сost": "76 647",
+		"Cost": "76 647",
 		"ProducingCountry": "Hollange",
 		"AgentEmail": "aliquet.metus.urna@icloud.net",
 		"Comments": ""
@@ -6025,7 +6143,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-04-21 03:01:42",
-		"Сost": "21 318",
+		"Cost": "21 318",
 		"ProducingCountry": "Monticelli d'Ongina",
 		"AgentEmail": "odio.a@outlook.edu",
 		"Comments": ""
@@ -6037,7 +6155,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-09-01 04:23:16",
-		"Сost": "46 893",
+		"Cost": "46 893",
 		"ProducingCountry": "Hofors",
 		"AgentEmail": "ipsum.leo.elementum@icloud.ca",
 		"Comments": ""
@@ -6049,7 +6167,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-05-01 19:57:05",
-		"Сost": "74 081",
+		"Cost": "74 081",
 		"ProducingCountry": "Irkutsk",
 		"AgentEmail": "molestie.sed@hotmail.org",
 		"Comments": ""
@@ -6061,7 +6179,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2024-07-06 01:21:17",
-		"Сost": "5 157",
+		"Cost": "5 157",
 		"ProducingCountry": "Broken Arrow",
 		"AgentEmail": "posuere@protonmail.com",
 		"Comments": ""
@@ -6073,7 +6191,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-10-08 09:18:20",
-		"Сost": "29 081",
+		"Cost": "29 081",
 		"ProducingCountry": "Melilla",
 		"AgentEmail": "lectus.pede@hotmail.ca",
 		"Comments": ""
@@ -6085,7 +6203,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-04 10:52:54",
-		"Сost": "36 259",
+		"Cost": "36 259",
 		"ProducingCountry": "Jecheon",
 		"AgentEmail": "nunc@outlook.edu",
 		"Comments": ""
@@ -6097,7 +6215,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2025-03-03 13:19:52",
-		"Сost": "64 012",
+		"Cost": "64 012",
 		"ProducingCountry": "Mjölby",
 		"AgentEmail": "gravida.praesent@yahoo.ca",
 		"Comments": ""
@@ -6109,7 +6227,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2023-08-31 02:26:45",
-		"Сost": "97 485",
+		"Cost": "97 485",
 		"ProducingCountry": "La Thuile",
 		"AgentEmail": "dui.quis@yahoo.ca",
 		"Comments": ""
@@ -6121,7 +6239,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-11-16 15:11:58",
-		"Сost": "67 529",
+		"Cost": "67 529",
 		"ProducingCountry": "Sankt Johann im Pongau",
 		"AgentEmail": "dolor@icloud.org",
 		"Comments": ""
@@ -6133,7 +6251,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-12-18 16:58:37",
-		"Сost": "4 825",
+		"Cost": "4 825",
 		"ProducingCountry": "Suwałki",
 		"AgentEmail": "nisi.a@hotmail.com",
 		"Comments": ""
@@ -6145,7 +6263,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-12-28 14:17:35",
-		"Сost": "88 831",
+		"Cost": "88 831",
 		"ProducingCountry": "Gijón",
 		"AgentEmail": "neque.pellentesque.massa@yahoo.couk",
 		"Comments": ""
@@ -6157,7 +6275,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-09-24 10:37:09",
-		"Сost": "26 506",
+		"Cost": "26 506",
 		"ProducingCountry": "Busan",
 		"AgentEmail": "scelerisque.dui@aol.edu",
 		"Comments": ""
@@ -6169,7 +6287,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-01-16 02:48:22",
-		"Сost": "96 940",
+		"Cost": "96 940",
 		"ProducingCountry": "Braunau am Inn",
 		"AgentEmail": "nisi.sem.semper@yahoo.ca",
 		"Comments": ""
@@ -6181,7 +6299,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-09-19 08:54:53",
-		"Сost": "67 423",
+		"Cost": "67 423",
 		"ProducingCountry": "Roccalumera",
 		"AgentEmail": "consequat.nec@icloud.net",
 		"Comments": ""
@@ -6193,7 +6311,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-12-06 13:00:08",
-		"Сost": "80 674",
+		"Cost": "80 674",
 		"ProducingCountry": "Tucson",
 		"AgentEmail": "eu@hotmail.edu",
 		"Comments": ""
@@ -6205,7 +6323,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-10-12 07:25:56",
-		"Сost": "72 560",
+		"Cost": "72 560",
 		"ProducingCountry": "Bellevue",
 		"AgentEmail": "nisi.magna.sed@aol.org",
 		"Comments": ""
@@ -6217,7 +6335,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2023-07-12 21:00:18",
-		"Сost": "74 005",
+		"Cost": "74 005",
 		"ProducingCountry": "Newark",
 		"AgentEmail": "et@hotmail.net",
 		"Comments": ""
@@ -6229,7 +6347,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-06-29 11:31:45",
-		"Сost": "45 463",
+		"Cost": "45 463",
 		"ProducingCountry": "Boston",
 		"AgentEmail": "egestas.hendrerit.neque@hotmail.ca",
 		"Comments": ""
@@ -6241,7 +6359,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2025-02-17 14:00:26",
-		"Сost": "92 748",
+		"Cost": "92 748",
 		"ProducingCountry": "Ełk",
 		"AgentEmail": "adipiscing.elit.aliquam@yahoo.couk",
 		"Comments": ""
@@ -6253,7 +6371,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2023-10-01 09:21:17",
-		"Сost": "62 611",
+		"Cost": "62 611",
 		"ProducingCountry": "Bouwel",
 		"AgentEmail": "sem.pellentesque@hotmail.couk",
 		"Comments": ""
@@ -6265,7 +6383,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-05-31 08:25:51",
-		"Сost": "88 414",
+		"Cost": "88 414",
 		"ProducingCountry": "Gaithersburg",
 		"AgentEmail": "lacus.mauris@protonmail.ca",
 		"Comments": ""
@@ -6277,7 +6395,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-10-30 21:15:39",
-		"Сost": "22 144",
+		"Cost": "22 144",
 		"ProducingCountry": "Gunsan",
 		"AgentEmail": "ut.nec@outlook.com",
 		"Comments": ""
@@ -6289,7 +6407,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2024-09-06 05:18:29",
-		"Сost": "9 085",
+		"Cost": "9 085",
 		"ProducingCountry": "Finspång",
 		"AgentEmail": "neque.vitae@protonmail.edu",
 		"Comments": ""
@@ -6301,7 +6419,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-01-13 01:41:27",
-		"Сost": "31 797",
+		"Cost": "31 797",
 		"ProducingCountry": "Seogwipo",
 		"AgentEmail": "lacus.quisque@hotmail.ca",
 		"Comments": ""
@@ -6313,7 +6431,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-05-30 09:58:48",
-		"Сost": "43 220",
+		"Cost": "43 220",
 		"ProducingCountry": "Gangneung",
 		"AgentEmail": "nulla.magna@protonmail.edu",
 		"Comments": ""
@@ -6325,7 +6443,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-12-31 07:26:19",
-		"Сost": "7 487",
+		"Cost": "7 487",
 		"ProducingCountry": "Sigillo",
 		"AgentEmail": "vitae@yahoo.ca",
 		"Comments": ""
@@ -6337,7 +6455,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-09-28 06:09:40",
-		"Сost": "57 326",
+		"Cost": "57 326",
 		"ProducingCountry": "Vienna",
 		"AgentEmail": "a.feugiat.tellus@icloud.org",
 		"Comments": ""
@@ -6349,7 +6467,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-09-06 03:16:42",
-		"Сost": "75 629",
+		"Cost": "75 629",
 		"ProducingCountry": "San Cesario di Lecce",
 		"AgentEmail": "odio@aol.com",
 		"Comments": ""
@@ -6361,7 +6479,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-03-08 12:26:59",
-		"Сost": "45 007",
+		"Cost": "45 007",
 		"ProducingCountry": "Obertshausen",
 		"AgentEmail": "interdum.nunc@hotmail.net",
 		"Comments": ""
@@ -6373,7 +6491,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2024-02-18 01:27:58",
-		"Сost": "65 930",
+		"Cost": "65 930",
 		"ProducingCountry": "Neufeld an der Leitha",
 		"AgentEmail": "sagittis@yahoo.net",
 		"Comments": ""
@@ -6385,7 +6503,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-11-15 11:37:48",
-		"Сost": "92 416",
+		"Cost": "92 416",
 		"ProducingCountry": "Gunsan",
 		"AgentEmail": "mi@aol.net",
 		"Comments": ""
@@ -6397,7 +6515,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2025-01-09 22:43:31",
-		"Сost": "95 555",
+		"Cost": "95 555",
 		"ProducingCountry": "A Coruña",
 		"AgentEmail": "cursus.et.eros@yahoo.com",
 		"Comments": ""
@@ -6409,7 +6527,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-05-08 09:25:40",
-		"Сost": "19 142",
+		"Cost": "19 142",
 		"ProducingCountry": "Hofors",
 		"AgentEmail": "metus.vivamus@outlook.org",
 		"Comments": ""
@@ -6421,7 +6539,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2023-12-16 12:51:53",
-		"Сost": "85 339",
+		"Cost": "85 339",
 		"ProducingCountry": "Ceuta",
 		"AgentEmail": "vestibulum.accumsan.neque@yahoo.org",
 		"Comments": ""
@@ -6433,7 +6551,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-08-23 03:44:03",
-		"Сost": "20 420",
+		"Cost": "20 420",
 		"ProducingCountry": "Dreux",
 		"AgentEmail": "ornare.in.faucibus@protonmail.edu",
 		"Comments": ""
@@ -6445,7 +6563,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-09-27 01:24:13",
-		"Сost": "73 229",
+		"Cost": "73 229",
 		"ProducingCountry": "Laon",
 		"AgentEmail": "mauris.quis@aol.net",
 		"Comments": ""
@@ -6457,7 +6575,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-10-04 17:21:16",
-		"Сost": "55 711",
+		"Cost": "55 711",
 		"ProducingCountry": "Iksan",
 		"AgentEmail": "nisi@protonmail.couk",
 		"Comments": ""
@@ -6469,7 +6587,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-08-24 20:55:39",
-		"Сost": "84 316",
+		"Cost": "84 316",
 		"ProducingCountry": "Yaroslavl",
 		"AgentEmail": "laoreet.libero@aol.edu",
 		"Comments": ""
@@ -6481,7 +6599,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2025-03-29 02:13:35",
-		"Сost": "86 665",
+		"Cost": "86 665",
 		"ProducingCountry": "Illkirch-Graffenstaden",
 		"AgentEmail": "libero@hotmail.org",
 		"Comments": ""
@@ -6493,7 +6611,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2024-10-28 22:53:20",
-		"Сost": "58 171",
+		"Cost": "58 171",
 		"ProducingCountry": "Columbia",
 		"AgentEmail": "pede.suspendisse@google.com",
 		"Comments": ""
@@ -6505,7 +6623,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2023-10-17 01:06:25",
-		"Сost": "40 931",
+		"Cost": "40 931",
 		"ProducingCountry": "Bekkerzeel",
 		"AgentEmail": "erat.semper@protonmail.org",
 		"Comments": ""
@@ -6517,7 +6635,7 @@
 		"Brand": "General Motors",
 		"Title": "",
 		"ProductionDate": "2024-01-13 15:10:35",
-		"Сost": "28 225",
+		"Cost": "28 225",
 		"ProducingCountry": "Radom",
 		"AgentEmail": "metus.facilisis@outlook.net",
 		"Comments": ""
@@ -6529,7 +6647,7 @@
 		"Brand": "Mitsubishi Motors",
 		"Title": "",
 		"ProductionDate": "2024-03-18 21:16:31",
-		"Сost": "76 817",
+		"Cost": "76 817",
 		"ProducingCountry": "Stendal",
 		"AgentEmail": "justo.proin.non@aol.ca",
 		"Comments": ""
@@ -6541,7 +6659,7 @@
 		"Brand": "BMW",
 		"Title": "",
 		"ProductionDate": "2024-05-14 12:11:53",
-		"Сost": "9 659",
+		"Cost": "9 659",
 		"ProducingCountry": "Tallahassee",
 		"AgentEmail": "risus@google.edu",
 		"Comments": ""
@@ -6553,7 +6671,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2025-01-31 11:56:29",
-		"Сost": "6 823",
+		"Cost": "6 823",
 		"ProducingCountry": "Châteauroux",
 		"AgentEmail": "ipsum.primis@icloud.ca",
 		"Comments": ""
@@ -6565,7 +6683,7 @@
 		"Brand": "Infiniti",
 		"Title": "",
 		"ProductionDate": "2024-04-14 17:14:57",
-		"Сost": "1 598",
+		"Cost": "1 598",
 		"ProducingCountry": "Cheyenne",
 		"AgentEmail": "aenean@google.net",
 		"Comments": ""
@@ -6577,7 +6695,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-12-27 20:41:07",
-		"Сost": "53 686",
+		"Cost": "53 686",
 		"ProducingCountry": "Villenave-d'Ornon",
 		"AgentEmail": "lectus.cum@hotmail.net",
 		"Comments": ""
@@ -6589,7 +6707,7 @@
 		"Brand": "Subaru",
 		"Title": "",
 		"ProductionDate": "2024-08-30 23:18:22",
-		"Сost": "36 645",
+		"Cost": "36 645",
 		"ProducingCountry": "Ludvika",
 		"AgentEmail": "ultrices.posuere.cubilia@aol.net",
 		"Comments": ""
@@ -6601,7 +6719,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2025-02-17 15:05:50",
-		"Сost": "10 905",
+		"Cost": "10 905",
 		"ProducingCountry": "Graz",
 		"AgentEmail": "arcu@google.com",
 		"Comments": ""
@@ -6613,7 +6731,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2025-04-15 18:57:42",
-		"Сost": "46 719",
+		"Cost": "46 719",
 		"ProducingCountry": "Vancouver",
 		"AgentEmail": "ipsum.primis@protonmail.org",
 		"Comments": ""
@@ -6625,7 +6743,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2025-04-22 15:19:55",
-		"Сost": "76 701",
+		"Cost": "76 701",
 		"ProducingCountry": "Melilla",
 		"AgentEmail": "felis.purus.ac@protonmail.com",
 		"Comments": ""
@@ -6637,7 +6755,7 @@
 		"Brand": "Audi",
 		"Title": "",
 		"ProductionDate": "2024-10-15 14:02:36",
-		"Сost": "19 685",
+		"Cost": "19 685",
 		"ProducingCountry": "Neubrandenburg",
 		"AgentEmail": "duis.sit@yahoo.couk",
 		"Comments": ""
@@ -6649,7 +6767,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2023-08-05 16:01:00",
-		"Сost": "59 959",
+		"Cost": "59 959",
 		"ProducingCountry": "Motala",
 		"AgentEmail": "facilisis@hotmail.couk",
 		"Comments": ""
@@ -6661,7 +6779,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2023-11-18 19:22:21",
-		"Сost": "77 920",
+		"Cost": "77 920",
 		"ProducingCountry": "Jeju",
 		"AgentEmail": "facilisis@protonmail.couk",
 		"Comments": ""
@@ -6673,7 +6791,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-10-24 13:57:33",
-		"Сost": "53 583",
+		"Cost": "53 583",
 		"ProducingCountry": "Sandy",
 		"AgentEmail": "metus@icloud.com",
 		"Comments": ""
@@ -6685,7 +6803,7 @@
 		"Brand": "Ferrari",
 		"Title": "",
 		"ProductionDate": "2025-03-28 20:46:47",
-		"Сost": "69 773",
+		"Cost": "69 773",
 		"ProducingCountry": "Tampa",
 		"AgentEmail": "in.lorem@protonmail.org",
 		"Comments": ""
@@ -6697,7 +6815,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-05-16 03:51:33",
-		"Сost": "63 085",
+		"Cost": "63 085",
 		"ProducingCountry": "Suwałki",
 		"AgentEmail": "et.magnis.dis@google.net",
 		"Comments": ""
@@ -6709,7 +6827,7 @@
 		"Brand": "Lexus",
 		"Title": "",
 		"ProductionDate": "2023-08-22 05:49:43",
-		"Сost": "50 743",
+		"Cost": "50 743",
 		"ProducingCountry": "Bremen",
 		"AgentEmail": "quam.a.felis@google.org",
 		"Comments": ""
@@ -6721,7 +6839,7 @@
 		"Brand": "Toyota",
 		"Title": "",
 		"ProductionDate": "2024-08-21 06:26:40",
-		"Сost": "95 321",
+		"Cost": "95 321",
 		"ProducingCountry": "Vetlanda",
 		"AgentEmail": "mauris@yahoo.com",
 		"Comments": ""
@@ -6733,7 +6851,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2025-01-20 14:32:57",
-		"Сost": "32 543",
+		"Cost": "32 543",
 		"ProducingCountry": "Adrano",
 		"AgentEmail": "arcu@icloud.org",
 		"Comments": ""
@@ -6745,7 +6863,7 @@
 		"Brand": "Ford",
 		"Title": "",
 		"ProductionDate": "2023-10-01 10:17:19",
-		"Сost": "17 721",
+		"Cost": "17 721",
 		"ProducingCountry": "Carcassonne",
 		"AgentEmail": "libero@protonmail.com",
 		"Comments": ""
@@ -6757,7 +6875,7 @@
 		"Brand": "Volkswagen",
 		"Title": "",
 		"ProductionDate": "2024-01-07 15:45:58",
-		"Сost": "68 393",
+		"Cost": "68 393",
 		"ProducingCountry": "Kharabali",
 		"AgentEmail": "vestibulum.massa@icloud.edu",
 		"Comments": ""
@@ -6769,7 +6887,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2024-06-24 11:39:59",
-		"Сost": "27 904",
+		"Cost": "27 904",
 		"ProducingCountry": "Enns",
 		"AgentEmail": "facilisis.facilisis.magna@hotmail.ca",
 		"Comments": ""
@@ -6781,7 +6899,7 @@
 		"Brand": "Hyundai Motors",
 		"Title": "",
 		"ProductionDate": "2024-05-16 09:53:10",
-		"Сost": "25 191",
+		"Cost": "25 191",
 		"ProducingCountry": "Hudiksvall",
 		"AgentEmail": "proin.mi.aliquam@outlook.net",
 		"Comments": ""
@@ -6793,7 +6911,7 @@
 		"Brand": "Volvo",
 		"Title": "",
 		"ProductionDate": "2024-07-06 21:53:09",
-		"Сost": "16 840",
+		"Cost": "16 840",
 		"ProducingCountry": "Le Puy-en-Velay",
 		"AgentEmail": "euismod.et@icloud.edu",
 		"Comments": ""
@@ -6805,7 +6923,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2023-07-29 18:18:43",
-		"Сost": "1 766",
+		"Cost": "1 766",
 		"ProducingCountry": "Legnica",
 		"AgentEmail": "donec@yahoo.net",
 		"Comments": ""
@@ -6817,7 +6935,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-08-24 06:01:43",
-		"Сost": "22 722",
+		"Cost": "22 722",
 		"ProducingCountry": "Cinisi",
 		"AgentEmail": "mi.pede.nonummy@outlook.org",
 		"Comments": ""
@@ -6829,7 +6947,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2024-09-03 15:38:24",
-		"Сost": "39 156",
+		"Cost": "39 156",
 		"ProducingCountry": "Sint-Kruis-Winkel",
 		"AgentEmail": "nisi.a@google.net",
 		"Comments": ""
@@ -6841,7 +6959,7 @@
 		"Brand": "Tata Motors",
 		"Title": "",
 		"ProductionDate": "2023-07-01 20:14:38",
-		"Сost": "66 287",
+		"Cost": "66 287",
 		"ProducingCountry": "Pontevedra",
 		"AgentEmail": "pellentesque.tellus.sem@protonmail.ca",
 		"Comments": ""
@@ -6853,7 +6971,7 @@
 		"Brand": "Mercedes-Benz",
 		"Title": "",
 		"ProductionDate": "2023-06-14 10:59:10",
-		"Сost": "83 932",
+		"Cost": "83 932",
 		"ProducingCountry": "Åkersberga",
 		"AgentEmail": "ligula.consectetuer@protonmail.org",
 		"Comments": ""
@@ -6865,7 +6983,7 @@
 		"Brand": "Nissan",
 		"Title": "",
 		"ProductionDate": "2024-03-23 23:24:14",
-		"Сost": "33 116",
+		"Cost": "33 116",
 		"ProducingCountry": "Rostov",
 		"AgentEmail": "ut.mi@yahoo.couk",
 		"Comments": ""
@@ -6877,7 +6995,7 @@
 		"Brand": "Honda",
 		"Title": "",
 		"ProductionDate": "2023-10-22 06:44:08",
-		"Сost": "43 566",
+		"Cost": "43 566",
 		"ProducingCountry": "Traiskirchen",
 		"AgentEmail": "sollicitudin@outlook.com",
 		"Comments": ""
@@ -6889,7 +7007,7 @@
 		"Brand": "Porsche",
 		"Title": "",
 		"ProductionDate": "2023-12-08 09:44:43",
-		"Сost": "37 740",
+		"Cost": "37 740",
 		"ProducingCountry": "Novgorod",
 		"AgentEmail": "morbi.accumsan.laoreet@outlook.com",
 		"Comments": ""
@@ -6933,40 +7051,163 @@
         }
 
         if (row.TypeRow === EnumTypeBrand.brand) {
-          row.ProductionDate = null
-          row.Сost = ''
+		row.ProductionDate = String(row.ProductionDate).slice(0, 10)
+          row.Cost = 0 
           row.AgentEmail = ''
           row.ProducingCountry = ''
         } else {
-			//console.log('dddd', toDate((String(row.ProductionDate)), "yyyy-mm-dd"))
 			row.ProductionDate = String(row.ProductionDate).slice(0, 10)
-			//row.ProductionDate =  new Date('2014-04-03').toDateString()
 		}
 
-        row.Сost = +(row.Сost.toString().replaceAll(' ', ''))
+        row.Cost = +(row.Cost.toString().replaceAll(' ', ''))
       });
     }
-  
+
     async function getData() {
-      
-	initCustomData()
-	
-	await store.dispatch('initAutofilter', dataValue)
+		initCustomData()
+		class TestEditor extends Handsontable.editors.TextEditor {
+			createElements() {
+				super.createElements();
+
+				var textarea = instance.rootDocument.createElement('textarea');
+				//textarea.focus()
+				textarea.setAttribute('placeholder', 'текстовый буфер');
+				textarea.setAttribute('autofocus', 'true');
+				textarea.setAttribute('rows', '1');
+				textarea.setAttribute('cols', '100')
+				textarea.style.cssText = 'margin-top: 2px;border: 2px solid #45494E; padding: 10px; resize: both; padding: 10px; max-height: 30vh; overflow: auto; width: auto'
+
+				let cellTextarea: HTMLTextAreaElement = this.TEXTAREA_PARENT.children[0] as HTMLTextAreaElement
+				cellTextarea.style.cssText = 'resize: both; padding: 10px; max-height: 60vh; overflow: auto;'
+
+				this.TEXTAREA_PARENT.style.cssText = 'margin-left: 2px;margin-right: 2px;  background-color: rgba(255, 255, 255, 0.76) !important;   width: auto; box-sizing: border-box;'
+				this.TEXTAREA_PARENT.append(textarea);
+			}
+        }
+		/* class DateCustomEditor extends Handsontable.editors.BaseEditor {
+  
+			init() {
+				let CustomDateEditorComponent = () => import('./SpecialComponents/CustomDateEditorComponent.vue')
+
+				var newDiv: HTMLDivElement = document.createElement("div");
+				newDiv.innerHTML = CustomDateEditorComponent
+				console.log('newDiv', newDiv)
+				newDiv.style.display = 'none';
+
+			}
+		} */
+
+		await store.dispatch('initAutofilter', dataValue)
 		
-	const container: HTMLElement | null = document.getElementById("hs-table");
-	instance = new Handsontable(container, hotSettings) as Handsontable;
+		const container: HTMLElement | null = document.getElementById("hs-table");
 
+		Handsontable.renderers.registerRenderer('renderForGuid', renderForGuid)
+		Handsontable.renderers.registerRenderer('renderProductionDate', renderProductionDate)
+		Handsontable.renderers.registerRenderer('renderForBrandCell', renderForBrandCell)
+		Handsontable.renderers.registerRenderer('renderForTdCommon', renderForTdCommon)
+		Handsontable.renderers.registerRenderer('renderCostField', renderCostField)
+		Handsontable.renderers.registerRenderer('renderStringTypeField', renderStringTypeField)
+		
+		Handsontable.editors.registerEditor('testEditor', TestEditor)
+		//Handsontable.editors.registerEditor('dateCustomEditor', DateCustomEditor)
+		Handsontable.validators.registerValidator('validatorDate', validatorDate)
+		Handsontable.validators.registerValidator('validatorByCostField', validatorByCostField)
+		if (container) {
+			instance = new Handsontable(container, hotSettings) as Handsontable;
+		}
+		
+
+		loadData(dataValue)
+
+		const commentsPlugin = instance.getPlugin('comments');
+		/* commentsPlugin.setCommentAtCell(1, 2, '1 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(2, 2, '2 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(3, 2, '3 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(0, 2, '4 mmentCommen tCommentComme ntComment  contents');
+
+		commentsPlugin.setCommentAtCell(1, 6, '1 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(2, 6, '2 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(3, 6, '3 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(0, 6, '4 mmentCommen tCommentComme ntComment  contents');
+
+		commentsPlugin.setCommentAtCell(400, 2, '1 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(401, 2, '2 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(402, 2, '3 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(403, 2, '4 mmentCommen tCommentComme ntComment  contents');
+
+		commentsPlugin.setCommentAtCell(501, 2, '1 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(502, 2, '2 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(503, 2, '3 mmentCommen tCommentComme ntComment  contents');
+		commentsPlugin.setCommentAtCell(504, 2, '4 mmentCommen tCommentComme ntComment  contents'); */
+
+		
+		//commentsPlugin.setRange({from: {row: 3, col: 6}});
+        //commentsPlugin.setComment('Comment 444444 contents    CommenCommentCommentCommentCommentComment');
+        //commentsPlugin.showAtCell(1, 6);
+
+		
+		//console.log('countVisibleRows', instance.countVisibleRows())
+		//console.log('countVisibleRows', instance.countVisibleRows())
+		//console.log('toPhysicalRow', instance.toPhysicalRow(3) )
+		//console.log('toVisualRow', instance.toVisualRow(3) )
+		//console.log('getSourceDataArray', instance.getSourceDataArray(0, 0, 0, 0))
+		//console.log('getSourceDataAtCell', instance.getSourceDataAtCell(0, 0) )
+
+		//console.log('getDataAtRow', instance.getDataAtRow(0)[0] )
+		//console.log('getSourceDataAtRow', instance.getSourceDataAtRow(0)?.Guid )
+    }
+
+	function renderForTdCommon(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string): any {
+		return renderTdCommon(instance, row, col, td, value)
+	}
+	function renderForBrandCell(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: any): any {
+		return renderBrandCell(td, value)
+	}
+	function renderForGuid(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string): any {
+		return renderGuid(td).onclick = function(){ getStory(value) }
+		//return renderGuid(td, value)
+	}
+
+	function renderProductionDate(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string, error?: boolean): any {
+		//const typeProject = instance.getDataAtCell(row, 1)
+		return renderTypeDate(row, td, value, error)
+	}
+	function renderCostField(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: any, error?: boolean): any {
+		return renderTypeNumber(row, td, value, error)
+	}
+	function renderBrandField(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string, error?: boolean): any {
+		return renderTypeDropdown(row, td, value, error)
+	}
 	
-	loadData(dataValue)
-    }
-
+	function renderStringTypeField(instance: Handsontable, td: HTMLTableCellElement, row: number, col: number, prop: string, value: string, error?: boolean): any {
+		return renderTypeTooltip(instance, row,col, td, value)
+	}
+	
     function getStory(value: string) {
-      console.log('clickStory', value)
+	console.log('clickStory', value)
+	emit('showPopupShowStoryRow', value)
     }
 
+    function search(columnSearchMetadata: ISearchByColumnMetadata) {
+		//начать поиск если есть данные для поиска value не falsy
+		if (columnSearchMetadata !== null && columnSearchMetadata.value !== EnumEmptyString.EmptyStringValue) {
+			//перед поиском очистить все фильтры
+			clearAllFilterBeforeStartSearch()
+
+			const fileldName: any = toRaw(columnSearchMetadata.fieldName)
+			const searchValue: string = toRaw(columnSearchMetadata.value).toLocaleLowerCase()
+			//columnSearchMetadata 
+			let sort = [...dataValue]
+			sort = sort.filter((el: any) => (~el[fileldName].toLocaleLowerCase().indexOf(searchValue)) )
+			
+			loadData(sort)
+		} else {
+			loadData(dataValue)
+		}
+	}
+	
 	function sort(autofilterList:  Map<number | string, IAutofilter>) {
 	//нужно сделать поиск 
-	console.log('sort', autofilterList.get(6))
 		let sort = [...dataValue]
 	
 		for (let elFilter of autofilterList.values() ) {
@@ -6979,7 +7220,6 @@
 				sort = sort.filter((el: any) => {
 					switch (fileldType) {
 						case  EnumTypeField.String:
-							
 							//замена "Пустые строки" на ""
 							{
 								const inxEmptyString: number = elFilter.values.indexOf(EnumEmptyString.EmptyString)
@@ -6996,25 +7236,26 @@
 						{
 							const minValue = elFilter.values[0]
 							const maxValue = elFilter.values[1]
-                            
+                            const dataValue = el[elFilter.columnName]
+
 							switch (rule) {
 								case  EnumRuleAutofilter.equally:
-									if (Number(el[elFilter.columnName]) === Number(minValue)) {
+									if (Number(dataValue) === Number(minValue)) {
 										return el
 									}
 								break
 								case  EnumRuleAutofilter.morethan:
-									if (Number(el[elFilter.columnName]) > Number(minValue)) {
+									if (Number(dataValue) > Number(minValue)) {
 										return el
 									}
 								break
 								case  EnumRuleAutofilter.lessthan:
-									if (Number(el[elFilter.columnName]) < Number(minValue)) {
+									if (Number(dataValue) < Number(minValue)) {
 										return el
 									}
 								break
 								case  EnumRuleAutofilter.between:
-									if (Number(el[elFilter.columnName]) >= Number(minValue) && Number(el[elFilter.columnName]) <= Number(maxValue)) {
+									if (Number(dataValue) >= Number(minValue) && Number(dataValue) <= Number(maxValue)) {
 										return el
 									}
 								break
@@ -7022,7 +7263,47 @@
 						}
 						break
 						case  EnumTypeField.Date:
-						//тело
+						{
+							//для isRangeRuleType === false min и max это одно и то же число
+							//для isRangeRuleType === true min и max это разные
+							let minValue = elFilter.filterValues[0].split('/').join('-')
+							let maxValue = elFilter.filterValues[1].split('/').join('-')
+							const timeMinValue = new Date(minValue).getTime()
+							const timeMaxValue = new Date(maxValue).getTime()
+							const dataValue = new Date(el[elFilter.columnName]).getTime()
+
+							//значения null пропускаются
+							if (el[elFilter.columnName] === null) return
+
+							switch (rule) {
+								case  EnumRuleAutofilter.equally:
+								case  EnumRuleAutofilter.today:
+								case  EnumRuleAutofilter.tomorrow:
+								case  EnumRuleAutofilter.yesterday:
+									if (dataValue === timeMinValue) {
+										return el
+									}
+									break
+								case  EnumRuleAutofilter.after:
+									if (dataValue > timeMinValue) {
+										return el
+									}
+									break
+								case  EnumRuleAutofilter.before:
+									if (dataValue < timeMinValue) {
+										return el
+									}
+									break
+								case  EnumRuleAutofilter.between:
+								case  EnumRuleAutofilter.upthisweek:
+								case  EnumRuleAutofilter.thismonth:
+								case  EnumRuleAutofilter.thisyear:
+									if (timeMinValue <= dataValue && timeMaxValue >= dataValue) {
+										return el
+									}
+									break
+							}
+						}
 						break
 					}
 				})
@@ -7037,23 +7318,23 @@
 		actualizationValuesAutofilterLocal()
 		
 		updateHeaderSettingsWithoutChange()
+		
     }
 	function updateHeaderSettingsWithoutChange() {
 		///переотрисовка шапки без изменений
-		instance.updateSettings({ nestedHeaders: [nestedHighHeader]})
+		instance.updateSettings({colWidths: [0.1,0.1,0.1]})
 	}
 
     function actualizationValuesAutofilterLocal() {
 		///актуализация данных (values) последнего выбранного автофильтра
 		valuesAutofilter.value = (store.getters.autofilterByColNum(selectedColumn.value) as IAutofilter).values
-		//console.log('valuesAutofilter.value', valuesAutofilter.value)
+		//console.log('+++++valuesAutofilter.value', valuesAutofilter.value)
 	}
 	function actualizationAppliedAutofilterLocal() {
 		///актуализация  (appllied) последнего выбранного автофильтра
 		applliedAutofilter.value = false
 	}
 	
-
     function updateAfterClearAutofilter(newObject: IAutofilter) {
 	
 		let columnName = newObject.columnName
@@ -7089,28 +7370,27 @@
 							{
 								const minValue = elFilter.values[0]
 								const maxValue = elFilter.values[1]
-								
-								
-								//console.log('maxValue', maxValue)
+								const dataValue = el[elFilter.columnName]
+							
 								switch (rule) {
 									case  EnumRuleAutofilter.equally:
-										if (Number(el[elFilter.columnName]) === Number(minValue)) {
+										if (Number(dataValue) === Number(minValue)) {
 											return el
 										}
 									break
 									case  EnumRuleAutofilter.morethan:
 									//console.log('morethan', rule)
-										if (Number(el[elFilter.columnName]) > Number(minValue)) {
+										if (Number(dataValue) > Number(minValue)) {
 											return el
 										}
 									break
 									case  EnumRuleAutofilter.lessthan:
-										if (Number(el[elFilter.columnName]) < Number(minValue)) {
+										if (Number(dataValue) < Number(minValue)) {
 											return el
 										}
 									break
 									case  EnumRuleAutofilter.between:
-										if (Number(el[elFilter.columnName]) >= Number(minValue) && Number(el[elFilter.columnName]) <= Number(maxValue)) {
+										if (Number(dataValue) >= Number(minValue) && Number(dataValue) <= Number(maxValue)) {
 											return el
 										}
 									break
@@ -7118,8 +7398,48 @@
 							}
 							break
 							case  EnumTypeField.Date:
-							//тело
-							break
+						{
+							//для isRangeRuleType === false min и max это одно и то же число
+							//для isRangeRuleType === true min и max это разные
+							let minValue = elFilter.filterValues[0].split('/').join('-')
+							let maxValue = elFilter.filterValues[1].split('/').join('-')
+							const timeMinValue = new Date(minValue).getTime()
+							const timeMaxValue = new Date(maxValue).getTime()
+							const dataValue = new Date(el[elFilter.columnName]).getTime()
+
+							//значения null пропускаются
+							if (el[elFilter.columnName] === null) return
+
+							switch (rule) {
+								case  EnumRuleAutofilter.equally:
+								case  EnumRuleAutofilter.today:
+								case  EnumRuleAutofilter.tomorrow:
+								case  EnumRuleAutofilter.yesterday:
+									if (dataValue === timeMinValue) {
+										return el
+									}
+									break
+								case  EnumRuleAutofilter.after:
+									if (dataValue > timeMinValue) {
+										return el
+									}
+									break
+								case  EnumRuleAutofilter.before:
+									if (dataValue < timeMinValue) {
+										return el
+									}
+									break
+								case  EnumRuleAutofilter.between:
+								case  EnumRuleAutofilter.upthisweek:
+								case  EnumRuleAutofilter.thismonth:
+								case  EnumRuleAutofilter.thisyear:
+									if (timeMinValue <= dataValue && timeMaxValue >= dataValue) {
+										return el
+									}
+									break
+							}
+						}
+						break
 						}
 					})
 				}
@@ -7146,7 +7466,23 @@
 	function addGlobalFilter() {
 		emit('showPopupCreateFilterName')
 	}
-	
+	function clearAllFilterBeforeStartSearch() {
+		if (thereIsAnActiveFastFilter.value === true) {
+			store.dispatch('deactivatedFastFilter')
+		}  
+		
+		if (thereIsActiveFilters.value === true){
+			
+			store.dispatch('deactivatedAutofilters')
+
+			store.dispatch('updateAutofilter', dataValue)
+			actualizationValuesAutofilterLocal()
+		actualizationAppliedAutofilterLocal()
+		}
+
+		//обнов шапку
+		updateHeaderSettingsWithoutChange()
+	}
 	function clearAllFilter() {
 
 		//убрать признак активности быстрого фильтра (сработало только если оно первее выполняется в коде)
@@ -7176,133 +7512,435 @@
     const getHtHeight = computed(() => {
       return window.innerHeight - 120;
     }) 
-  
-  const hotSettings = reactive({
-   data: dataValue,
-   rowHeaders: true,
-   colHeaders: true,
-   nestedHeaders: [nestedHighHeader],
-   fixedColumnsStart: 2,
-   height: getHtHeight,
-   width: getHtWidth,
-   columnSorting: true,
-   activeHeaderClassName: 'activeHeaderClass',
-  currentRowClassName: 'currentRowClass',
-  currentHeaderClassName: 'currentHeaderClass',
-  currentColClassName: 'currentColClass',
-  persistentState: true,
-  beforeOnCellMouseDown,
-  afterGetColHeader,
-  manualColumnResize: true,
-  autoWrapRow: true,
-  autoWrapCol: true,
-  columns,
-	hiddenColumns: {
-		columns: hiddenColumns,
-		indicators: true
-	},
-    licenseKey: 'non-commercial-and-evaluation'
-  })
-    
-  
+
+	
+	const hotSettings: any = reactive({ 
+		/* beforeScroll: function() {
+           console.log('beforeScroll')
+		},
+		beforeViewRender: function(isForced: any) {
+           console.log('beforeViewRender', isForced)
+		},
+		beforeInitWalkontable: function(walkontableConfig: any) {
+           console.log('beforeInitWalkontable', walkontableConfig)
+		}, */
+		/* beforeLoadData: function(sourceData: any, initialLoad: any, source: any) {
+           console.log('beforeLoadData', sourceData, initialLoad, source)
+		}, */
+		/* beforeViewportScrollHorizontally: function(visualColumn: any) {
+           console.log('beforeViewportScrollHorizontally', visualColumn)
+		}, */
+		/* afterLoadData: function(sourceData: any, initialLoad: any, source: any) {
+		console.log('1beforeLoadData', sourceData)
+		
+		}, */
+		afterScrollVertically: function() {
+        //console.log('afterScrollVertically')
+		//toPhysicalRow
+		//toVisualRow
+		//core.getSourceData([строка], [столбец], [строка2], [столбец2])
+		},
+        beforeAutofill: function(selectionData: any, sourceRange: any, targetRange: any, direction: string) {
+
+			if (selectColumn.value === EnumColumnTableNumber.Guid || 
+				selectColumn.value === EnumColumnTableNumber.Type ||
+				selectColumn.value === EnumColumnTableNumber.AgentEmail ||
+				selectColumn.value === EnumColumnTableNumber.Comments) {
+				return false
+			}
+
+			let fromRow = targetRange.from.row
+			let toRow = targetRange.to.row
+			let typeProject: string = instance.getDataAtCell(selectRow.value, 1)
+			
+			if (fromRow <= toRow) {
+				for (var i = fromRow; i <= toRow; i++) {
+					let typeProject: string = instance.getDataAtCell(i, 1)
+
+					if (
+						typeProject === EnumTypeBrand.brand && (
+						selectColumn.value === EnumColumnTableNumber.Name ||
+						selectColumn.value === EnumColumnTableNumber.Title ||
+						selectColumn.value === EnumColumnTableNumber.ProducingCountry
+					)) {
+						instance.setCellMeta(i, selectColumn.value, 'readOnly', true)
+					}
+				}
+			}
+		},
+		beforePaste: function(data: any[], coords: any[]) {
+	
+			let lengthRow: number = data.length
+            let startRow: number = coords[0].startRow
+			let startCol: number = coords[0].startCol
+			let endRow: number = startRow + lengthRow - 1
+            
+            if (startCol === EnumColumnTableNumber.Guid || 
+				startCol === EnumColumnTableNumber.Type ||
+				startCol === EnumColumnTableNumber.AgentEmail ||
+				startCol === EnumColumnTableNumber.Comments) {
+				return false
+			}
+
+			for (var i = startRow; i <= endRow; i++) {
+				let typeProject: string = instance.getDataAtCell(i, 1)
+				if (
+					typeProject === EnumTypeBrand.brand && (
+					selectColumn.value === EnumColumnTableNumber.Name ||
+					selectColumn.value === EnumColumnTableNumber.Title ||
+					selectColumn.value === EnumColumnTableNumber.ProducingCountry
+				)) {
+					instance.setCellMeta(i, selectColumn.value, 'readOnly', true)
+				}
+			}
+		},
+		
+		comments: {
+			readOnly: false,
+			style: {
+				width: 500,
+				height: 400
+			}
+		},
+		undo: false,
+		redo: false,
+		fragmentSelection: true,
+		fillHandle: 'vertical',
+		data: dataValue,
+		rowHeaders: true,
+		colHeaders: true,
+		nestedHeaders: [nestedHighHeaderGroup,teststruxt, nestedHighHeader],
+		fixedColumnsStart: 2,
+		height: getHtHeight,
+		width: getHtWidth,
+		columnSorting: {
+			indicator: true, // disable indicator for the first column,
+			sortEmptyCells: false,
+			headerAction: true, // clicks on the first column won't sort
+			
+		},
+		activeHeaderClassName: 'activeHeaderClass',
+		currentRowClassName: 'currentRowClass',
+		currentHeaderClassName: 'currentHeaderClass',
+		currentColClassName: 'currentColClass',
+		invalidCellClassName: 'invalidCellClassName',
+		readOnlyCellClassName: 'readOnlyCellClassName',
+		placeholderCellClassName: 'has-placeholder',
+		className: "custom-class-name",
+		persistentState: true,
+		contextMenu: contextMenu,
+		manualColumnResize: true,
+		autoRowSize: false,
+		rowHeights: 30,
+		autoWrapRow: true,
+		autoWrapCol: true,
+		manualRowMove: true,
+		columns,
+		hiddenColumns: {
+			columns: hiddenColumns,
+			indicators: true,
+			copyPasteEnabled: false
+		},
+		collapsibleColumns: false,
+		renderAllColumns: false,
+		licenseKey: 'non-commercial-and-evaluation',
+		language: 'ru-RU',
+		beforeOnCellMouseDown,
+		afterGetColHeader,
+		afterSelection: function(row: number, column: number) {
+
+		selectRow.value = row
+		selectColumn.value = column
+		/* console.log('selectRow.value', selectRow.value)
+		console.log('selectColumn.value', selectColumn.value) */
+		},
+		beforeHighlightingRowHeader: function(row: number, headerLevel: any, highlightMeta: any) {
+		highlightedRows.value = Number(highlightMeta.selectionHeight)
+		},
+		beforeHighlightingColumnHeader: function(column: number, headerLevel: any, highlightMeta: any) {
+		highlightedColumns.value = Number(highlightMeta.selectionWidth)
+		},
+		beforeBeginEditing: function(row: number, col: number) {
+		
+			let typeProject: string = instance.getDataAtCell(row, 1)
+			if (
+				typeProject === EnumTypeBrand.brand && (
+				col === EnumColumnTableNumber.Name ||
+				col === EnumColumnTableNumber.Title ||
+				col === EnumColumnTableNumber.ProducingCountry
+			)) {
+				instance.setCellMeta(row, col, 'readOnly', true)
+				return false
+			}
+
+			
+		},
+		beforeChange: function(changes: any[], source: any) {
+
+			if (!changes.length) return false
+
+			let fileldName: string = changes[0][1] as string
+			let newValue: string = changes[0][3] as string
+			
+			switch(fileldName) {
+				case EnumFieldName.ProductionDate:
+					if (validatorDateWithoutCallbak(newValue) === false) {
+						//если не прошло валидацию то окрасить ячейку красным
+						renderProductionDate(instance, getTdCell(), selectRow.value, selectColumn.value, fileldName, newValue, true )
+						return false
+					}
+					break
+				case EnumFieldName.Cost:
+					if (validatorByCostField(newValue) === false) {
+						//если не прошло валидацию то окрасить ячейку красным
+						renderCostField(instance, getTdCell(), selectRow.value, selectColumn.value, fileldName, newValue, true )
+						return false
+					}
+					break
+				case EnumFieldName.Brand:
+					if (validatorByBrandField(newValue) === false) {
+						//если не прошло валидацию то окрасить ячейку красным
+						renderBrandField(instance, getTdCell(), selectRow.value, selectColumn.value, fileldName, newValue, true )
+						return false
+					}
+					break
+			}
+		},
+		/* afterChange: function(changes: any[], source: any) {
+        console.log('afterChange', dataValue[4])
+		} */
+	})
+
+	
   function afterGetColHeader(column: number, td: HTMLTableCellElement, row: number, custom?: boolean) {
 	return renderAfterGetColHeader(column, td, row)
   }
 
+  const getTdCell = (): HTMLTableCellElement => instance.getCell(selectRow.value, selectColumn.value)
+
   function loadData(data: IModelData[]) {
 	countRow.value = data.length
+	var totalChild = data.reduce((accum: number,item: IModelData) => accum + Number(item.Cost), 0)
+    store.dispatch('setSummObject', {CostField: totalChild})
+
 	instance.loadData(data)
   }
 
   function beforeOnCellMouseDown(event: any, coords: any, td: HTMLTableCellElement, controller: any) {
+
     let typeProject: string = instance.getDataAtCell(coords.row, 1)
+	let col = coords.col
+	let row = coords.row
 
-	if (typeProject === EnumTypeBrandRow.brand) {
-
+	if ( typeProject === EnumTypeBrand.brand && (
+		col === EnumColumnTableNumber.Name ||
+		col === EnumColumnTableNumber.Title ||
+		col === EnumColumnTableNumber.ProducingCountry
+	)) {
 		let buttonMouse: number = event.button
-
-		if (buttonMouse === 0) {
+        //клики мыши
+		/* if (buttonMouse === 0 || buttonMouse === 1 || buttonMouse === 2) {
 			instance.deselectCell()
-			event.stopImmediatePropagation();
-		}
+			event.stopImmediatePropagation()
+		} */
+		instance.setCellMeta(row, col, 'readOnly', true)
 	}
+	//instance.resumeExecution();
   }
   
   </script>
   
   <style lang="css">
-  
-  #tooltip-header {
-    background-color: rgb(255, 255, 255);
-    padding: 5px;
-    z-index: 1001 !important;
-    position: fixed;
-    display: none;
-    
-    height: auto;
-    width: auto;
-    white-space: normal !important;
-    -webkit-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
-    -moz-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
-    box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
-  }
-  .material {
-    font-style: normal !important;
-    color: var(--main-text-color);
-  }
+/* .custom-class-name span.colHeader.columnSorting.ascending::before {
+  content: '⇡' !important;
+  background-image: none !important;
+} */
 
-  .material:hover {
-    font-style: normal !important;
-    color: #6eaecc ;
-	cursor: pointer !important;
-  }
 
-  .table-wrapper {
-	width: 100%;
-	height: 100%;
-	position: relative;
-  }
+/* .custom-class-name span.colHeader.columnSorting.descending::before {
+  content: '⇣' !important;
+  background-image: none !important;
+} */
+.handsontableInputHolder {
+	/* border: 2px solid #fc0 !important;
+	outline: 2px solid red !important; */
+}
+ .ht_editor_hidden {
+	/* border: 2px solid #fc0 !important;
+	outline: 2px solid red !important; */
+}
+ .current[aria-selected='true'] {
+	/* background-color: #fc0  !important; */
+	/* outline: 2px solid red !important; 
+	border: 2px solid #fc0 !important;  */
+}
+/* .handsontable td:selected {
+    background: #fc0  !important;
+   } */
+/*  .currentRowClass {
+border: 5px solid rgb(12, 215, 26) !important;
+}  */
 
-  .table-wrapper__board {
+/* .htFocusCatcher {
+border: 5px solid rgb(247, 22, 251) !important;
+} */
+
+
+  .handsontableInput {
+	resize: both !important;
+	
+  }
+  .has-placeholder {
+	color: rgba(255, 255, 255, 0.37) !important;
+  }
+  .ht__active_highlight {
+	border: 5px solid red !important;
+  }
+  .TableClassName {
+	border: 5px solid red !important;
+  }
+.htItemWrapper:hover{
+	background-color: rgb(245, 245, 245) !important;
+}
+.htDisabled > .htItemWrapper{
+	color: #9c9c9d !important;
+}
+.htItemWrapper {
+	font-family: 'Roboto700' !important;
+	/* border-bottom: 1px solid #dbdbdb !important; */
+	background-color: rgb(253, 253, 253) !important;
+	margin: -4px -6px 0px -6px !important;
+	padding: 7px 12px 7px 8px !important;
+	text-align: left !important;
+	color: #474a51;
+}
+.htCommentTextArea {
+	font-family: 'Roboto400' !important;
+	font-weight: 400 !important;
+	min-width: 500px !important;
+	min-height: 100px !important;
+	max-width: 600px !important;
+	max-height: 700px !important;
+	background-color: white;
+	font-size: 16px !important;
+	-webkit-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18) !important;
+	-moz-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18) !important;
+	box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18) !important;
+	padding: 12px !important;
+	border-radius: 4px !important;
+	letter-spacing: 0.5px;
+}
+.dropdownMenu {
+	border: 4px solid red !important;
+	background-color: rgb(0, 50, 248) !important;
+}
+
+.contextMenu {
+	border: 4px solid red !important;
+	background-color: rgb(0, 50, 248) !important;
+}
+
+.htAutocompleteArrow {
+	color: #d1d2d3 !important;
+}
+.htDropdownMenu {
+	background-color: rgb(0, 50, 248) !important;
+	border: 4px solid red !important;
+}
+.handsontableInputHolder .ht_editor_visible {
+	background-color: rgb(0, 50, 248) !important;
+	border: 4px solid red !important;
+}
+
+.readOnlyCellClassName {
+background-color: #eceff1 !important;
+}
+
+.invalidCellClassName {
+background-color: #ff0000 !important;
+}
+#tooltip-header {
+background-color: rgb(255, 255, 255);
+padding: 5px;
+z-index: 1001 !important;
+position: fixed;
+display: none;
+
+height: auto;
+width: auto;
+white-space: normal !important;
+-webkit-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
+-moz-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
+box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
+}
+.material {
+font-style: normal !important;
+color: var(--main-text-color);
+}
+
+.material:hover {
+font-style: normal !important;
+color: #6eaecc ;
+cursor: pointer !important;
+}
+
+.table-wrapper {
+width: 100%;
+height: 100%;
+position: relative;
+}
+
+.table-wrapper__board {
 	padding: 2px 10px 2px 10px;
 	display: flex;
 	align-items: center;
 	flex-direction: row;
 	justify-content: space-between;
-  }
-	.table-wrapper__board-right {
-		display: flex;
-		flex-direction: row;
-		gap: 18px;
-		font-style: normal !important;
-	height: 34px;
-	}
-	.table-wrapper__text {
-		color: var(--main-text-color);
-		font-family: 'Roboto500';
-		white-space: nowrap;
-		user-select: none;
-	}
-	.currentHeaderClass {
-		background-color: hsl(100, 62%, 85%) !important;
-		background-color: #eceff1  !important;
-	}
-
-	.activeHeaderClass {
-		background-color: hsl(100, 62%, 85%) !important;
-		background-color: #eceff1 !important;
-	}
-
-.handsontable td,
-.handsontable tr {
-	overflow: hidden;
-	text-overflow: ellipsis;
+}
+.table-wrapper__board-right {
+	display: flex;
+	flex-direction: row;
+	gap: 18px;
+	font-style: normal !important;
+height: 34px;
+}
+.table-wrapper__text {
+	color: var(--main-text-color);
+	font-family: 'Roboto500';
 	white-space: nowrap;
-	text-align: center;
-	vertical-align: central;
-	height: 30px;
+	user-select: none;
+}
+.currentHeaderClass {
+	background-color: #ffeccc !important;
+	/* background-color: #eceff1  !important; */
+	background-color: #def1ee !important;
 }
 
+.activeHeaderClass {
+	background-color: #def1ee !important;
+	
+	
+}
+
+.currentColClass {
+	border: 1px solid red;
+}
+.handsontable td br {
+	display: none !important;
+}
+.handsontable td,
+.handsontable tr {
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	text-align: center !important;
+	vertical-align: central !important;
+	height: 30px !important;
+	white-space: nowrap  !important; 
+}
+
+.wtHider {
+
+}
 .handsontable th {
     color: var(--hs-th-color);
 	font-weight: bold;
@@ -7315,25 +7953,35 @@
 #tooltip-text {
     background-color: white;
     color: var(--hs-th-color);
-    /* border-radius: 4px; */
-    font-size: 16px;
-	font-family: 'Roboto400' !important;
-	letter-spacing: 0.3px !important;
-    padding: 16px;
-
+    font-size: 15px;
+	/* font-family: 'Roboto400' !important; */
+	letter-spacing: 0.2px !important;
+    padding: 10px 20px 10px 10px;
+	border:2px solid var(--table-grey-color);
 	line-height: normal;
-    /* border: 1px solid #c2c2b747; */
     z-index: 100 !important;
     position: fixed;
     display: none;
     width: auto;
     height: auto;
-    /* max-width: 800px;
-    min-width: 100px; */
     white-space: normal !important;
-    -webkit-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
-    -moz-box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
-    box-shadow: 0px 0px 6px 2px rgba(34, 60, 80, 0.18);
   }
+
+	
+.wtHolder::-webkit-scrollbar {
+  width: 12px !important;
+margin: 5px !important;
+  height: 12px !important;
+}
+.wtHolder::-webkit-scrollbar-corner {
+	background: #def1ee !important;
+	margin: 5px !important;
+}
+.wtHolder::-webkit-scrollbar-thumb {
+	margin: 5px !important;
+	border-radius: 0px;
+	background-color: #bcd7d2 !important;    /* цвет плашки */
+	border: 1px solid #def1ee;  /* padding вокруг плашки */
+}
 
   </style>

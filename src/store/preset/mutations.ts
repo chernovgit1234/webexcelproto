@@ -42,8 +42,6 @@ export const mutations: MutationTree<Preset> = {
     
     const presets =  [...state.presetList]
     const idxPresetChanged: number = presets.findIndex((preset: IPreset) => preset.id === idPreset)
-    console.log('presets', presets)
-    console.log('idxPresetChanged', idxPresetChanged)
     
     if (state.presetList.length === 2) {
       const defaultPreset: IPreset = presets.find((preset: IPreset) => preset.isDefault === true) as IPreset
@@ -51,7 +49,23 @@ export const mutations: MutationTree<Preset> = {
     }
 
     state.presetList.splice(idxPresetChanged, 1)
-
-
+  },
+  UPDATE_HIDDEN_COLUMNS_FOR_ACTIVE_PRESET(state: Preset, hiddenColumns: number[]) {
+    //обновление скрытых колонок для активного пресета
+    const presets =  [...state.presetList]
+    const idxActivePreset: number = presets.findIndex((preset: IPreset) => preset.active === true)
+    state.presetList[idxActivePreset].hiddenColumns = [...state.presetList[idxActivePreset].hiddenColumns, ...hiddenColumns]
+  },
+  UPDATE_SHOWED_COLUMNS_FOR_ACTIVE_PRESET(state: Preset, showedColumns: number[]) {
+    //обновление отображенных колонок для активного пресета
+    const presets =  [...state.presetList]
+    const idxActivePreset: number = presets.findIndex((preset: IPreset) => preset.active === true)
+    state.presetList[idxActivePreset].hiddenColumns = state.presetList[idxActivePreset].hiddenColumns.map((colMap: number) => {
+      if (showedColumns.some((colSome: number) => colSome === colMap)) {
+        return 
+      } else {
+        return colMap
+      }
+    }).filter(el => el) as any[]
   }
 };

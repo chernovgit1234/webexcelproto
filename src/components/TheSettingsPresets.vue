@@ -173,9 +173,9 @@ const columnsData = reactive<IPresetListColumn[]>([
     selected: true
   },
   {
-    num: EnumColumnNumber.Сost,
-    numCol: EnumColumnTableNumber.Сost,
-    name: EnumColumnName.Сost,
+    num: EnumColumnNumber.Cost,
+    numCol: EnumColumnTableNumber.Cost,
+    name: EnumColumnName.Cost,
     selected: true
   },
   {

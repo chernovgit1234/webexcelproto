@@ -17,5 +17,11 @@ export const actions: ActionTree<Preset, RootState> = {
   },
   deletePreset({commit}, idPreset) {
     commit('DELETE_PRESET', idPreset)
+  },
+  updateHiddenColumnsForActivePreset({commit}, hiddenColumns: number[]) {
+    commit('UPDATE_HIDDEN_COLUMNS_FOR_ACTIVE_PRESET', hiddenColumns)
+  },
+  updateShowedColumnsForActivePreset({commit}, showedColumns: number[]) {
+    commit('UPDATE_SHOWED_COLUMNS_FOR_ACTIVE_PRESET', showedColumns)
   }
 };

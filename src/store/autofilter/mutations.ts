@@ -42,16 +42,20 @@ export const mutations: MutationTree<Autofilter> = {
       break;
       case EnumTypeField.Date:
         
-        values = [...new Set(dataValues.map((el: any) => el[fieldName]) )]
-        rules = [EnumRuleAutofilter.equally, EnumRuleAutofilter.before, EnumRuleAutofilter.after]
-
-       {
-        const idxEmptyString = values.findIndex((el: any) => el === null)
-        //если есть null, тогда назвать "Пустые строки"
-          if (idxEmptyString !== -1) {
-            values[idxEmptyString] = EnumEmptyString.EmptyString
-          }
-       } 
+        values = [...new Set(dataValues.map((el: any) => el[fieldName]).filter(el => el).sort( (a: string, b: any) => ( new Date(a) as any) - (new Date(b) as any)  )   )]
+        
+        rules = [
+          EnumRuleAutofilter.equally, 
+          EnumRuleAutofilter.before, 
+          EnumRuleAutofilter.after,
+          EnumRuleAutofilter.today,
+          EnumRuleAutofilter.tomorrow,
+          EnumRuleAutofilter.yesterday,
+          EnumRuleAutofilter.upthisweek,
+          EnumRuleAutofilter.thismonth,
+          EnumRuleAutofilter.thisyear,
+          EnumRuleAutofilter.between
+        ]
       break;
       case EnumTypeField.String:
         values = [...new Set(dataValues.map((el: any) => el[fieldName]).filter(el => el !== null).sort((a, b) => a.localeCompare(b)) )]
@@ -102,9 +106,19 @@ export const mutations: MutationTree<Autofilter> = {
           rules = [EnumRuleAutofilter.equally, EnumRuleAutofilter.morethan, EnumRuleAutofilter.lessthan, EnumRuleAutofilter.between]
         break;
         case EnumTypeField.Date:
-          
-          values = [...new Set(dataValues.map((el: any) => el[fieldName]) )]
-          rules = [EnumRuleAutofilter.equally, EnumRuleAutofilter.before, EnumRuleAutofilter.after]
+          values = [...new Set(dataValues.map((el: any) => el[fieldName]).filter((el: any) => el).sort( (a: string, b: any) => ( new Date(a) as any) - (new Date(b) as any)  )   )]
+          rules = [
+            EnumRuleAutofilter.equally, 
+            EnumRuleAutofilter.before, 
+            EnumRuleAutofilter.after,
+            EnumRuleAutofilter.today,
+            EnumRuleAutofilter.tomorrow,
+            EnumRuleAutofilter.yesterday,
+            EnumRuleAutofilter.upthisweek,
+            EnumRuleAutofilter.thismonth,
+            EnumRuleAutofilter.thisyear,
+            EnumRuleAutofilter.between
+          ]
   
          {
           const idxEmptyString = values.findIndex((el: any) => el === null)

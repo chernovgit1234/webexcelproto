@@ -9,6 +9,44 @@ export enum EnumTypeBrandRow {
   'product' = 'product'
 }
 
+export function getFieldNameByColumnNum(col: number): string {
+
+  let returnValue= ''
+
+  switch (col) {
+    case EnumColumnTableNumber.Type:
+      returnValue = EnumFieldName.Type
+      break
+    case EnumColumnTableNumber.Name:
+      returnValue = EnumFieldName.Name
+      break
+    case EnumColumnTableNumber.Brand:
+      returnValue = EnumFieldName.Brand
+      break
+    case EnumColumnTableNumber.Title:
+      returnValue = EnumFieldName.Title
+      break
+    case EnumColumnTableNumber.ProductionDate:
+      returnValue = EnumFieldName.ProductionDate
+      break
+    case EnumColumnTableNumber.Cost:
+      returnValue = EnumFieldName.Cost
+      break
+    case EnumColumnTableNumber.ProducingCountry:
+      returnValue = EnumFieldName.ProducingCountry
+      break
+    case EnumColumnTableNumber.AgentEmail:
+      returnValue = EnumFieldName.AgentEmail
+      break
+    case EnumColumnTableNumber.Comments:
+      returnValue = EnumFieldName.Comments
+      break
+  }
+
+  return returnValue
+
+}
+
 export enum EnumColumnName {
   Guid = '',
   Type = 'Тип',
@@ -16,7 +54,7 @@ export enum EnumColumnName {
   Brand = 'Брэнд',
   Title = 'Описание',
   ProductionDate = 'Дата выпуска',
-  Сost = 'Стоимость',
+  Cost = 'Стоимость',
   ProducingCountry = 'Страна производитель',
   AgentEmail = 'Почта агента',
   Comments = 'Комментарий'
@@ -29,7 +67,7 @@ export enum EnumFieldName {
   Brand = 'Brand',
   Title = 'Title',
   ProductionDate = 'ProductionDate',
-  Сost = 'Сost',
+  Cost = 'Cost',
   ProducingCountry = 'ProducingCountry',
   AgentEmail = 'AgentEmail',
   Comments = 'Comments'
@@ -41,19 +79,21 @@ export enum EnumColumnNumber {
   Brand = 2,
   Title = 3,
   ProductionDate = 4,
-  Сost = 5,
+  Cost = 5,
   ProducingCountry = 6,
   AgentEmail = 7,
   Comments = 8
 }
 
 export enum EnumColumnTableNumber {
+  Numbs = -1,
+  Guid = 0,
   Type = 1,
   Name = 2,
   Brand = 3,
   Title = 4,
   ProductionDate = 5,
-  Сost = 6,
+  Cost = 6,
   ProducingCountry = 7,
   AgentEmail = 8,
   Comments = 9

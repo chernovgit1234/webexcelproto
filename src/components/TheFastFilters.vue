@@ -6,23 +6,23 @@
           id="chipsGroupId" 
           :style="{'box-shadow': haveRightScroll === true && haveScroll === true ? '-7px 0px 9px -6px rgba(84, 93, 99, 0.43) inset': 'none' }"
         >
-            <div 
-                class="chip-filter" 
-                v-for="(name, i) of fastFilterNames" 
-                :key="i" 
-                :id="`${name}Id`"
-                @click="selectFastFilter(name)"
-                @mouseover="mouseoverChip(name.replaceAll(' ', ''))"
-                :style="{'outline': name === activeFilterName ? '2px solid blue': '1px solid #817e7e'}"
-            >
-                <span :id="`${name.replaceAll(' ', '')}СпанАйди`">{{ name }}</span>
-                <div class="chip-filter__icon-wrapper" v-if="name === activeFilterName" @click.stop="resetFastFilter()">
-                    <q-icon class="chip-filter__close-icon" name="close"/>
-                </div>
-                <q-tooltip class="text-body2 tooltip-el" v-if="showTooltipChip" anchor="top middle" self="bottom middle" >
-                  <span class="cursor-carret_none">{{ name }}</span><br/>
-                </q-tooltip>
-            </div> 
+          <div 
+            class="chip-filter" 
+            v-for="(name, i) of fastFilterNames" 
+            :key="i" 
+            :id="`${name}Id`"
+            @click="selectFastFilter(name)"
+            @mouseover="mouseoverChip(name.replaceAll(' ', ''))"
+            :style="{'outline': name === activeFilterName ? '2px solid blue': '1px solid #817e7e'}"
+          >
+            <span :id="`${name.replaceAll(' ', '')}СпанАйди`">{{ name }}</span>
+            <div class="chip-filter__icon-wrapper" v-if="name === activeFilterName" @click.stop="resetFastFilter()">
+                <q-icon class="chip-filter__close-icon" name="close"/>
+            </div>
+            <q-tooltip class="text-body2 tooltip-el" v-if="showTooltipChip" anchor="top middle" self="bottom middle" >
+              <span class="cursor-carret_none">{{ name }}</span><br/>
+            </q-tooltip>
+          </div> 
         </div>
       </div>
         <div class="chips-group__count" v-if="fastFilterNames.length && haveScroll">
@@ -38,10 +38,8 @@
 </template>
 
 <script lang="ts" setup>
-import { watch } from 'vue';
-import { nextTick } from 'vue';
-import { watchEffect } from 'vue';
-import { ref, defineEmits, computed, defineProps } from 'vue';
+
+import { ref, defineEmits, computed, nextTick, watchEffect } from 'vue';
 import { useStore } from 'vuex'
 import {EnumTypeFilter} from '../enums/EnumsByFilter'
 import {EnumEmptyString} from '../types/OtherTypes'
@@ -99,7 +97,7 @@ function scrollRight() {
   //отключение стрелки
   const chipsGroup = document.querySelector('#chipsGroupId') as HTMLDivElement
   let calcValue: number = chipsGroup.scrollWidth - chipsGroup.clientWidth - StepScroll.Step200
-  if ( Math.ceil(chipsGroup.scrollLeft) >= calcValue) {
+  if (Math.ceil(chipsGroup.scrollLeft) >= calcValue) {
     haveRightScroll.value = false
   }
 }

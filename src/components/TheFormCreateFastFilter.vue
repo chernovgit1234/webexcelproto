@@ -1,6 +1,6 @@
 <template>
-    <div>
-        <q-card style="width: 400px;">
+    <div style="width: 400px;">
+        <q-card>
             <q-card-section>
             <div class="text-h6">Создание быстрого фильтра</div>
             <q-separator />

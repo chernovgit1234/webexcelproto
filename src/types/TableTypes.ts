@@ -6,7 +6,7 @@ export interface IModelData {
   Brand: string;
   Title: string;
   ProductionDate: string | null;
-  Сost: string | number;
+  Cost: string | number;
   ProducingCountry: string;
   AgentEmail: string;
   Comments: string;

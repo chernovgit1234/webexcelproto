@@ -57,4 +57,16 @@ button::-moz-focus-inner {padding:0;border:0;}
 a,a:visited{text-decoration: none;}
 a:hover{text-decoration: none;}
 
+textarea::-webkit-scrollbar {
+  width: 8px;
+}
+textarea::-webkit-scrollbar-corner {
+  background: #def1ee !important;
+}
+textarea::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    background-color: #bcd7d2 !important;    /* цвет плашки */
+    border: 1px solid #def1ee;  /* padding вокруг плашки */
+}
+  
 

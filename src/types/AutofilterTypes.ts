@@ -7,5 +7,6 @@ export interface IAutofilter {
   filterValues: any[],
   values: any[],
   rules: EnumRuleAutofilter[],
-  appliedRule: EnumRuleAutofilter
+  appliedRule: EnumRuleAutofilter,
+  isRangeRuleType?: boolean
 }

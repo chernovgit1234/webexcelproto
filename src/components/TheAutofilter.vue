@@ -3,7 +3,6 @@
         <div class="autofilter__rule">
             <q-select 
                 outlined
-                label-color="#817e7e"
                 filled 
                 v-model="appliedRule" 
                 :options="rules" 
@@ -23,7 +22,6 @@
                     v-model="searchText" 
                     dense 
                     color="blue-14"
-                    label-color="#817e7e"
                     bg-color="white"
                 >
                     <template v-slot:prepend>
@@ -70,9 +68,10 @@
         <div class="autofilter__number-type number-type-autofilter" v-else-if="fieldType === EnumTypeField.Number">
             <div class="number-type-autofilter__between-rule number-type-between-rule" v-if="appliedRule === EnumRuleAutofilter.between">
                 <q-range
+                    @pan="panRange()"
                     v-model="numberRange"
                     :min="0"
-                    :max="100000"
+                    :max="1_000_000"
                     :step="1"
                     label-always
                     color="blue-14"
@@ -121,9 +120,8 @@
                         outlined 
                         v-model="numberText"
                         dense 
-                        :label="appliedRule"
+                        :label="appliedRule.toLocaleLowerCase()"
                         color="blue-14"
-                        label-color="#817e7e"
                         bg-color="white"
                         min="0"
                         :step="stepNumberInput"
@@ -135,7 +133,7 @@
                 </div>
                 <div class="number-type-autofilter__step-select">
                     <q-select
-                         style="width: 140px; right: 0;position: absolute;"
+                        style="width: 140px; right: 0;position: absolute;"
                         outlined
                         label-color="#817e7e"
                         filled 
@@ -156,10 +154,17 @@
             </div>
         </div>
         <div class="autofilter__data-type" v-else-if="fieldType === EnumTypeField.Date">
-            Date
+            <TheAutofilterDateType 
+                :values="values"
+                :applied="applied"
+                :appliedRule="appliedRule"
+                @applyDateTypeAutofilter="applyDateTypeAutofilter"
+                @clearDateTypeAutofilter="clearAutofilter()"
+            >
+            </TheAutofilterDateType>
         </div>
         <div class="autofilter__other-type" v-else>
-          <span> Неопознанный тип </span>
+          <span>Неопознанный тип </span>
         </div>
         
     </div>
@@ -168,14 +173,10 @@
 <script setup lang="ts">
 import { useStore } from 'vuex'
 import {IAutofilter} from '../types/AutofilterTypes'
-import {ref, computed, watch, defineEmits, watchEffect, defineProps, reactive} from 'vue'
+import {ref, computed, watch, defineEmits, watchEffect, defineProps} from 'vue'
 import {EnumRuleAutofilter, EnumTypeField, EnumStepNumberInput} from '../enums/EnumsByFilter'
+import TheAutofilterDateType from './TheAutofilterDateType.vue'
 
-import { watchIgnorable } from '@vueuse/core'
-
-function blurSelect() {
-    store.dispatch('allowCloseableAutofilter')
-}
 type TypeValue = {
     selected: boolean,
     value: any
@@ -188,6 +189,7 @@ const props = defineProps<{
 const emit = defineEmits(['sort', 'updateAfterClearAutofilter'])
 const store = useStore()
 
+//let valuesDateAutofilter = ref<any[]>([])
 let fieldType = ref<EnumTypeField>(EnumTypeField.String)
 let columnName = ref<string>('')
 let selectedAll = ref(false)  
@@ -208,9 +210,7 @@ const thereIsAnActiveFastFilter = computed(() => store.getters.thereIsAnActiveFa
 
 const disableClearTypeStringBtn = computed<boolean>(() => {
     //заморозить кнопку сброса если автофильтр не применен и есть примененный быстрый фильтр 
-    if (thereIsAnActiveFastFilter.value === true) {
-        return true
-    } else if (applied.value === false) {
+    if (thereIsAnActiveFastFilter.value === true || applied.value === false) {
         return true
     } else {
         return false
@@ -255,10 +255,6 @@ const numberRangeApplyable = computed<boolean>(() => {
 
 let selectedColumn = computed(() => store.getters.selectedColumn)
 
-function focusSelect() {
-    store.dispatch('disallowCloseableAutofilter')
-}
-
 watch(selectedColumn, (newValue: number) => {
     clearData()
 
@@ -276,6 +272,9 @@ watch(selectedColumn, (newValue: number) => {
         values.value = autofilterByColNum.values
         numberRange.value.min = autofilterByColNum.values[0]
         numberRange.value.max = autofilterByColNum.values[1]
+    } else if (autofilterByColNum.fieldType === EnumTypeField.Date) {
+        values.value = autofilterByColNum.values
+        
     } else {
         values.value = autofilterByColNum.values.map((value: any) => ({selected: false, value}))
     }
@@ -299,23 +298,17 @@ watch(searchText, (newValue: string) => {
 watchEffect(() => {
     switch (fieldType.value) {
         case EnumTypeField.Number:
-        console.log('EnumTypeField.Number,', props.valuesAutofilter)
             values.value = props.valuesAutofilter
-           /* numberRange.value.min = props.valuesAutofilter[0]
-            numberRange.value.max = props.valuesAutofilter[1]
-            numberText.value = props.valuesAutofilter[0] */
-
             break
         case EnumTypeField.String:
-        console.log('EnumTypeField.String')
             values.value = props.valuesAutofilter.map((value: any) => ({selected: false, value}))
             break
         case EnumTypeField.Date:
-            console.log('EnumTypeField.Date')
+            values.value = props.valuesAutofilter
             break
     }
 },{  flush: 'sync'})
-//watchIgnorable
+
 watchEffect(() => {
     applied.value = props.applliedAutofilter   
 })
@@ -339,6 +332,27 @@ function selectAll() {
     }
 }
 
+function applyDateTypeAutofilter(filterValues: string[], isRangeRuleType: boolean) {
+
+    const newObjectAutofilter: IAutofilter = {
+        fieldType: fieldType.value,
+        columnName: columnName.value,
+        applied: true,
+        values: [],
+        filterValues: filterValues,
+        rules: rules.value,
+        appliedRule: appliedRule.value,
+        columnNum: columnNum.value,
+        isRangeRuleType: isRangeRuleType
+    }
+
+    //обновление МАП по номеру
+    store.dispatch('updateObjectAutofilter', newObjectAutofilter)
+
+    applied.value = true
+
+    emit('sort', store.getters.autofilterList)
+}
 function applyAutofilter() {
     //чистые данные без TypeValue
     let applyValues = values.value.filter((el: TypeValue) => el.selected === true).map((el: TypeValue) => el.value)
@@ -348,19 +362,19 @@ function applyAutofilter() {
     let valuesValue;
     switch (fieldType.value) {
         case EnumTypeField.String:
-        valuesValue = applyValues
-        break
+            valuesValue = applyValues
+            break
         case EnumTypeField.Number:
-        valuesValue = values.value
-        if (appliedRule.value === EnumRuleAutofilter.between) {
-            valuesValue = [Number(numberRange.value.min), Number(numberRange.value.max)]
-        } else {
-            valuesValue = [Number(numberText.value), Number(numberText.value)]
-        }
-        break
+            valuesValue = values.value
+            if (appliedRule.value === EnumRuleAutofilter.between) {
+                valuesValue = [Number(numberRange.value.min), Number(numberRange.value.max)]
+            } else {
+                valuesValue = [Number(numberText.value), Number(numberText.value)]
+            }
+            break
         case EnumTypeField.Date:
-        valuesValue = []
-        break
+            //в этой функции не будет обрабатываться case Date (см. ф-ию applyDateTypeAutofilter)
+            break
     }
     
     const newObjectAutofilter: IAutofilter = {
@@ -381,16 +395,18 @@ function applyAutofilter() {
     
     switch (fieldType.value) {
         case EnumTypeField.String:
+            //для чисел настройки отбора фильтра отправлялся в values, для строк в filterValues
             filterValues.value = applyValues
             values.value = applyValuesLocal 
             values.value.forEach((el: TypeValue) => el.selected = false)
             break
         case EnumTypeField.Number:
+            //для чисел настройки отбора фильтра отправлялся в values, для строк в filterValues
             filterValues.value = valuesValue
             values.value = valuesValue
             break
         case EnumTypeField.Date:
-        //Date
+        //в этой функции не будет обрабатываться case Date (см. ф-ию applyDateTypeAutofilter)
         break
     }
     
@@ -412,6 +428,23 @@ function clearAutofilter() {
     }
 
     emit('updateAfterClearAutofilter', newObjectAutofilter)
+}
+
+let panableRange = ref(false)
+function panRange() {
+    panableRange.value = !panableRange.value
+
+    if (panableRange.value === true) {
+        store.dispatch('disallowCloseableAutofilter')
+    } else {
+        store.dispatch('allowCloseableAutofilter')
+    }
+}
+function focusSelect() {
+    store.dispatch('disallowCloseableAutofilter')
+}
+function blurSelect() {
+    store.dispatch('allowCloseableAutofilter')
 }
 </script>
 
@@ -464,7 +497,7 @@ function clearAutofilter() {
     gap: 8px;
 }
 .autofilter {
-    max-height: 450px;
+    max-height: 600px;
     width: 320px;
     display: flex;
     flex-direction: column;
