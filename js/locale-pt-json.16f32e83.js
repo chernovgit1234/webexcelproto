@@ -1,0 +1,1 @@
+"use strict";(self["webpackChunkhanson_test"]=self["webpackChunkhanson_test"]||[]).push([[321],{7741:function(s){s.exports=JSON.parse('{"column":{"name":"Привет"}}')}}]);
