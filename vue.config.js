@@ -10,6 +10,5 @@ module.exports = defineConfig({
       rtlSupport: false
     }
   },
-
-  publicPath: '/excel-proto-website/'
+  publicPath: `/excelprotoapp/`
 })
